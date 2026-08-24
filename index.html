@@ -667,9 +667,12 @@
             font-size: 13px;
             line-height: 1;
         }
-        canvas {
-            max-width: 100%;
-        }
+       /* Replace your existing canvas CSS rule with this */
+canvas {
+    max-width: 100% !important;
+    max-height: 230px !important; /* Constrains vertical expansion */
+    width: 100% !important;
+}
 
         #heatmapPanel .hm-scroll {
             overflow-x: auto;
