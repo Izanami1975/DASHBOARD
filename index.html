@@ -1,1 +1,2898 @@
-test
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Firestore Excel Manager & Dashboard</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+    <!-- Chart.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js">
+    </script>
+    <script>
+        (function loadChartFallback() {
+            if (typeof Chart !== 'undefined') return;
+            var script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js';
+            script.onload = function() {
+                console.log('Chart.js loaded from fallback CDN');
+                if (typeof window.renderCharts === 'function') window.renderCharts();
+            };
+            script.onerror = function() {
+                console.warn('Chart.js could not be loaded from either CDN. Charts will not render.');
+                document.dispatchEvent(new CustomEvent('chartLoadFailed'));
+            };
+            document.head.appendChild(script);
+        })();
+    </script>
+
+    <!-- XLSX -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js">
+    </script>
+
+    <!-- Firebase Modular SDK via importmap -->
+    <script type="importmap">
+        {
+            "imports": {
+                "firebase/app": "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js",
+                "firebase/firestore": "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js",
+                "firebase/auth": "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js"
+            }
+        }
+    </script>
+
+    <style>
+        /* ===== CSS ===== */
+        :root {
+            --bg: #0B1220;
+            --panel: #121B2E;
+            --panel2: #16213A;
+            --line: #223252;
+            --text: #E8EDF6;
+            --muted: #8593AC;
+            --signal: #FF6B4A;
+            --signal-dim: #3a2420;
+            --good: #35D0A6;
+            --info: #5B9CFF;
+            --amber: #FFC24B;
+            --radius: 10px;
+            --font-display: 'Space Grotesk', system-ui, sans-serif;
+            --font-body: 'Inter', system-ui, sans-serif;
+            --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+        }
+        * {
+            box-sizing: border-box;
+        }
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background:
+                radial-gradient(1200px 600px at 100% -10%, #14213c 0%, transparent 60%),
+                radial-gradient(900px 500px at -10% 0%, #10192c 0%, transparent 55%),
+                var(--bg);
+            color: var(--text);
+            font-family: var(--font-body);
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+        ::selection {
+            background: var(--signal);
+            color: #0B1220;
+        }
+        a {
+            color: var(--info);
+        }
+        button {
+            font-family: var(--font-body);
+            cursor: pointer;
+        }
+        input,
+        select {
+            font-family: var(--font-body);
+        }
+
+        .wrap {
+            max-width: 1440px;
+            margin: 0 auto;
+            padding: 20px 24px 60px;
+        }
+        header.top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 24px;
+            padding-bottom: 18px;
+            margin-bottom: 18px;
+            border-bottom: 1px solid var(--line);
+        }
+        .brand {
+            display: flex;
+            gap: 14px;
+            align-items: center;
+        }
+        .brand .mark {
+            width: 42px;
+            height: 42px;
+            border-radius: 10px;
+            flex: none;
+            background: linear-gradient(145deg, var(--signal), #c94a2e);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-display);
+            font-weight: 700;
+            color: #0B1220;
+            font-size: 18px;
+            box-shadow: 0 0 0 1px rgba(255, 255, 255, .08), 0 6px 18px -6px rgba(255, 107, 74, .6);
+        }
+        .brand h1 {
+            font-family: var(--font-display);
+            font-size: 19px;
+            margin: 0 0 2px;
+            letter-spacing: .2px;
+        }
+        .brand p {
+            margin: 0;
+            color: var(--muted);
+            font-size: 12.5px;
+        }
+        .eyebrow {
+            font-family: var(--font-mono);
+            font-size: 10.5px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--signal);
+            margin: 0 0 4px;
+        }
+        .top-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+        .pill {
+            font-family: var(--font-mono);
+            font-size: 11.5px;
+            color: var(--muted);
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: 6px 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--panel);
+        }
+        .pill .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--good);
+        }
+        .btn {
+            border: 1px solid var(--line);
+            background: var(--panel2);
+            color: var(--text);
+            border-radius: 8px;
+            padding: 8px 14px;
+            font-size: 13px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            transition: .15s ease;
+        }
+        .btn:hover {
+            border-color: #3a4d78;
+            background: #1a2743;
+        }
+        .btn.primary {
+            background: var(--signal);
+            border-color: var(--signal);
+            color: #1c0c06;
+            font-weight: 600;
+        }
+        .btn.primary:hover {
+            background: #ff7d61;
+        }
+        .btn.ghost {
+            background: transparent;
+        }
+        .btn:disabled {
+            opacity: .4;
+            cursor: not-allowed;
+        }
+        .btn svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        #saveStatus {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            padding: 14px 22px;
+            font-size: 13px;
+            box-shadow: 0 12px 40px -8px rgba(0, 0, 0, .6);
+            display: none;
+            z-index: 999;
+            max-width: 380px;
+            backdrop-filter: blur(12px);
+        }
+        #saveStatus.show {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        #saveStatus .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--line);
+            border-top-color: var(--signal);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        #saveStatus .ico {
+            font-size: 18px;
+        }
+        #saveStatus .ico.ok {
+            color: var(--good);
+        }
+        #saveStatus .ico.err {
+            color: var(--signal);
+        }
+        #saveStatus .close {
+            background: none;
+            border: none;
+            color: var(--muted);
+            font-size: 18px;
+            padding: 0 0 0 12px;
+            cursor: pointer;
+        }
+
+        #uploadStage {
+            border: 1.5px dashed var(--line);
+            border-radius: 16px;
+            padding: 64px 32px;
+            text-align: center;
+            background: var(--panel);
+            margin-bottom: 22px;
+            transition: .15s ease;
+        }
+        #uploadStage.drag {
+            border-color: var(--signal);
+            background: #171025;
+        }
+        #uploadStage h2 {
+            font-family: var(--font-display);
+            font-size: 24px;
+            margin: 18px 0 8px;
+        }
+        #uploadStage p {
+            color: var(--muted);
+            font-size: 14px;
+            margin: 0 auto 22px;
+            max-width: 460px;
+            line-height: 1.6;
+        }
+        #uploadStage .icon {
+            width: 56px;
+            height: 56px;
+            margin: 0 auto;
+            border-radius: 14px;
+            background: var(--panel2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--line);
+        }
+        .upload-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        #fileInput {
+            display: none;
+        }
+        #sheetPickerWrap {
+            margin-top: 16px;
+            font-size: 12.5px;
+            color: var(--muted);
+            display: none;
+        }
+        #sheetPickerWrap select {
+            background: var(--panel2);
+            color: var(--text);
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            padding: 4px 8px;
+        }
+        #fetchSection {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            margin-bottom: 22px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        #fetchSection .lbl {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+        #fetchSection select {
+            background: var(--panel2);
+            color: var(--text);
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 13px;
+            min-width: 160px;
+        }
+        #fetchSection .status {
+            font-size: 12px;
+            color: var(--muted);
+            margin-left: auto;
+        }
+        #dashboard {
+            display: none;
+        }
+
+        .filter-rail {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            margin-bottom: 18px;
+        }
+        .filter-rail .rail-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .rail-top .lbl {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+        .slicer-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .slicer {
+            position: relative;
+        }
+        .slicer>button {
+            background: var(--panel2);
+            border: 1px solid var(--line);
+            color: var(--text);
+            border-radius: 7px;
+            padding: 7px 10px;
+            font-size: 12.5px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .slicer>button .count {
+            background: var(--signal);
+            color: #1c0c06;
+            font-family: var(--font-mono);
+            font-size: 10.5px;
+            border-radius: 999px;
+            padding: 1px 6px;
+            font-weight: 600;
+        }
+        .slicer>button:hover {
+            border-color: #3a4d78;
+        }
+        .slicer.active>button {
+            border-color: var(--signal);
+        }
+        .slicer-panel {
+            display: none;
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            z-index: 40;
+            background: #0e1728;
+            border: 1px solid var(--line);
+            border-radius: 9px;
+            width: 230px;
+            max-height: 280px;
+            overflow: auto;
+            padding: 8px;
+            box-shadow: 0 18px 40px -12px rgba(0, 0, 0, .6);
+        }
+        .slicer.open .slicer-panel {
+            display: block;
+        }
+        .slicer-panel input.search {
+            width: 100%;
+            background: var(--panel2);
+            border: 1px solid var(--line);
+            color: var(--text);
+            border-radius: 6px;
+            padding: 6px 8px;
+            font-size: 12px;
+            margin-bottom: 6px;
+        }
+        .slicer-panel .row-actions {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+        .slicer-panel .row-actions button {
+            background: none;
+            border: none;
+            color: var(--info);
+            font-size: 11px;
+            padding: 0;
+        }
+        .slicer-opt {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            padding: 4px 3px;
+            font-size: 12.5px;
+            border-radius: 5px;
+        }
+        .slicer-opt:hover {
+            background: var(--panel2);
+        }
+        .slicer-opt input {
+            accent-color: var(--signal);
+        }
+        .slicer-opt span.n {
+            margin-left: auto;
+            color: var(--muted);
+            font-family: var(--font-mono);
+            font-size: 10.5px;
+        }
+        .searchbox {
+            flex: 1;
+            min-width: 200px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--panel2);
+            border: 1px solid var(--line);
+            border-radius: 7px;
+            padding: 7px 10px;
+        }
+        .searchbox input {
+            background: none;
+            border: none;
+            outline: none;
+            color: var(--text);
+            font-size: 12.5px;
+            flex: 1;
+        }
+        .searchbox svg {
+            width: 14px;
+            height: 14px;
+            color: var(--muted);
+            flex: none;
+        }
+
+        .timeline-box {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            padding: 14px 18px 10px;
+            margin-bottom: 18px;
+        }
+        .timeline-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 8px;
+        }
+        .timeline-head .lbl {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+        .timeline-head .range-txt {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            color: var(--text);
+        }
+        #timelineWave {
+            width: 100%;
+            height: 64px;
+            display: block;
+        }
+        .slider-row {
+            position: relative;
+            height: 26px;
+            margin-top: 2px;
+        }
+        .slider-row input[type=range] {
+            position: absolute;
+            top: 8px;
+            left: 0;
+            width: 100%;
+            -webkit-appearance: none;
+            appearance: none;
+            background: transparent;
+            pointer-events: none;
+            margin: 0;
+        }
+        .slider-row input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            pointer-events: auto;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--signal);
+            border: 2px solid #0B1220;
+            margin-top: -5px;
+            cursor: grab;
+            box-shadow: 0 0 0 3px rgba(255, 107, 74, .25);
+        }
+        .slider-row input[type=range]::-webkit-slider-runnable-track {
+            height: 4px;
+            background: transparent;
+        }
+        .slider-row input[type=range]::-moz-range-thumb {
+            pointer-events: auto;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--signal);
+            border: 2px solid #0B1220;
+            cursor: grab;
+        }
+        .slider-track {
+            position: absolute;
+            top: 11px;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--line);
+            border-radius: 2px;
+        }
+        .slider-fill {
+            position: absolute;
+            top: 11px;
+            height: 4px;
+            background: var(--signal);
+            border-radius: 2px;
+            opacity: .55;
+        }
+
+        .kpi-strip {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 14px;
+            margin-bottom: 18px;
+        }
+        .kpi-card {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            padding: 15px 16px 12px;
+            position: relative;
+            overflow: hidden;
+        }
+        .kpi-card .klabel {
+            font-size: 11.5px;
+            color: var(--muted);
+            font-weight: 500;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .kpi-card .kval {
+            font-family: var(--font-mono);
+            font-size: 27px;
+            font-weight: 600;
+            letter-spacing: -.5px;
+            line-height: 1;
+        }
+        .kpi-card .kval sub {
+            font-family: var(--font-body);
+            font-size: 13px;
+            color: var(--muted);
+            font-weight: 500;
+            margin-left: 2px;
+        }
+        .kpi-card .kdelta {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            margin-top: 6px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .kpi-card .kdelta.up {
+            color: var(--signal);
+        }
+        .kpi-card .kdelta.down {
+            color: var(--good);
+        }
+        .kpi-card .kdelta.flat {
+            color: var(--muted);
+        }
+        .kpi-card svg.spark {
+            position: absolute;
+            right: 0;
+            bottom: 0;
+            opacity: .9;
+        }
+        .kpi-card.accent-signal {
+            box-shadow: inset 3px 0 0 var(--signal);
+        }
+        .kpi-card.accent-good {
+            box-shadow: inset 3px 0 0 var(--good);
+        }
+        .kpi-card.accent-info {
+            box-shadow: inset 3px 0 0 var(--info);
+        }
+        .kpi-card.accent-amber {
+            box-shadow: inset 3px 0 0 var(--amber);
+        }
+
+        .section-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 26px 0 12px;
+        }
+        .section-head h2 {
+            font-family: var(--font-display);
+            font-size: 16px;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .section-head h2 .num {
+            color: var(--signal);
+            font-family: var(--font-mono);
+            font-size: 12px;
+        }
+        .section-head p {
+            margin: 2px 0 0;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .grid2 {
+            display: grid;
+            grid-template-columns: 1.3fr 1fr;
+            gap: 14px;
+        }
+        .grid3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            padding: 16px 18px;
+        }
+        .panel-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .panel-head h3 {
+            font-size: 13.5px;
+            margin: 0;
+            font-weight: 600;
+        }
+        .panel-head .sub {
+            font-size: 11px;
+            color: var(--muted);
+            font-family: var(--font-mono);
+        }
+        .panel-head .toggles {
+            display: flex;
+            gap: 6px;
+        }
+        .toggles button {
+            background: var(--panel2);
+            border: 1px solid var(--line);
+            color: var(--muted);
+            border-radius: 6px;
+            font-size: 11px;
+            padding: 4px 9px;
+        }
+        .toggles button.on {
+            color: var(--text);
+            border-color: var(--signal);
+            background: #241811;
+        }
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #241811;
+            border: 1px solid var(--signal);
+            color: #ffb59f;
+            border-radius: 999px;
+            font-size: 11px;
+            padding: 3px 9px;
+            font-family: var(--font-mono);
+        }
+        .chip button {
+            background: none;
+            border: none;
+            color: #ffb59f;
+            padding: 0;
+            font-size: 13px;
+            line-height: 1;
+        }
+        canvas {
+            max-width: 100% !important;
+            max-height: 230px !important;
+            width: 100% !important;
+        }
+
+        #heatmapPanel .hm-scroll {
+            overflow-x: auto;
+        }
+        .hm-table {
+            border-collapse: collapse;
+            font-family: var(--font-mono);
+            font-size: 10px;
+            width: 100%;
+        }
+        .hm-table th {
+            color: var(--muted);
+            font-weight: 500;
+            padding: 3px 2px;
+            text-align: center;
+            font-size: 9.5px;
+        }
+        .hm-table td {
+            padding: 0;
+            text-align: center;
+        }
+        .hm-cell {
+            width: 100%;
+            height: 20px;
+            min-width: 20px;
+            border-radius: 3px;
+            margin: 1px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(255, 255, 255, .85);
+            font-size: 8.5px;
+        }
+        .hm-row-label {
+            font-size: 10px;
+            color: var(--muted);
+            padding-right: 8px;
+            white-space: nowrap;
+            text-align: right;
+        }
+
+        #insightsPanel ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        #insightsPanel li {
+            display: flex;
+            gap: 10px;
+            padding: 11px 12px;
+            background: var(--panel2);
+            border-radius: 8px;
+            border: 1px solid var(--line);
+            font-size: 12.8px;
+            line-height: 1.5;
+        }
+        #insightsPanel li .ico {
+            flex: none;
+            width: 22px;
+            height: 22px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+        #insightsPanel li b {
+            color: var(--text);
+        }
+        #insightsPanel li .ico.r {
+            background: var(--signal-dim);
+            color: var(--signal);
+        }
+        #insightsPanel li .ico.g {
+            background: #0e2b24;
+            color: var(--good);
+        }
+        #insightsPanel li .ico.a {
+            background: #2b2410;
+            color: var(--amber);
+        }
+        #insightsPanel li .ico.i {
+            background: #0e1f36;
+            color: var(--info);
+        }
+
+        table.datatable {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+        table.datatable th {
+            text-align: left;
+            color: var(--muted);
+            font-weight: 500;
+            font-size: 10.5px;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            padding: 7px 8px;
+            border-bottom: 1px solid var(--line);
+            cursor: pointer;
+            white-space: nowrap;
+            position: sticky;
+            top: 0;
+            background: var(--panel);
+        }
+        table.datatable th:hover {
+            color: var(--text);
+        }
+        table.datatable th.sorted::after {
+            content: ' \2193';
+            color: var(--signal);
+        }
+        table.datatable th.sorted.asc::after {
+            content: ' \2191';
+        }
+        table.datatable td {
+            padding: 6px 8px;
+            border-bottom: 1px solid #1a2740;
+            font-family: var(--font-mono);
+            font-size: 11.3px;
+            white-space: nowrap;
+        }
+        table.datatable tbody tr:hover {
+            background: var(--panel2);
+        }
+        .table-scroll {
+            max-height: 340px;
+            overflow: auto;
+            border-radius: 6px;
+        }
+        .cellbar {
+            display: inline-block;
+            height: 6px;
+            border-radius: 3px;
+            vertical-align: middle;
+            margin-right: 6px;
+        }
+        .badge-vital {
+            background: var(--signal-dim);
+            color: var(--signal);
+            font-family: var(--font-mono);
+            font-size: 9.5px;
+            padding: 1px 6px;
+            border-radius: 4px;
+        }
+        .badge-flag {
+            background: #2b2410;
+            color: var(--amber);
+            font-family: var(--font-mono);
+            font-size: 9.5px;
+            padding: 1px 6px;
+            border-radius: 4px;
+        }
+
+        .crosstab-pair {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+        .footnote {
+            font-size: 11px;
+            color: var(--muted);
+            margin-top: 8px;
+            line-height: 1.5;
+        }
+
+        .chart-placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 200px;
+            color: var(--muted);
+            font-size: 13px;
+            text-align: center;
+            padding: 20px;
+            background: var(--panel2);
+            border-radius: 8px;
+            border: 1px dashed var(--line);
+        }
+
+        /* Auto-load indicator */
+        #autoLoadStatus {
+            font-size: 12px;
+            color: var(--muted);
+            padding: 6px 12px;
+            border-radius: 6px;
+            background: var(--panel2);
+            border: 1px solid var(--line);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        #autoLoadStatus .spinner-sm {
+            width: 14px;
+            height: 14px;
+            border: 2px solid var(--line);
+            border-top-color: var(--signal);
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            display: none;
+        }
+        #autoLoadStatus.loading .spinner-sm {
+            display: inline-block;
+        }
+        #autoLoadStatus .ico {
+            font-size: 16px;
+        }
+
+        @media (max-width:1100px) {
+            .kpi-strip {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .grid2,
+            .grid3,
+            .crosstab-pair {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ===== AUTH GATE ===== */
+        #authGate {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        #loginForm {
+            width: 100%;
+            max-width: 340px;
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            padding: 26px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        #loginForm input {
+            background: var(--panel2);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 10px 12px;
+            color: var(--text);
+            font-size: 13.5px;
+        }
+        #loginForm input:focus {
+            outline: none;
+            border-color: var(--info);
+        }
+        #loginError {
+            color: var(--signal);
+            font-size: 12.5px;
+            min-height: 14px;
+        }
+        #loginBtn[disabled] {
+            opacity: .6;
+            cursor: default;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ===== AUTH GATE ===== -->
+    <div id="authGate">
+        <form id="loginForm">
+            <div class="mark" style="width:44px;height:44px;border-radius:10px;background:linear-gradient(145deg,var(--signal),#c94a2e);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;color:#0B1220;font-size:19px;margin-bottom:6px;">QA</div>
+            <h2 style="margin:0;font-family:var(--font-display);font-size:18px;">Sign in required</h2>
+            <p style="margin:0 0 6px;color:var(--muted);font-size:12.5px;">This dashboard reads and writes live QA data. Sign in with your team account to continue.</p>
+            <input type="email" id="loginEmail" placeholder="Email" autocomplete="username" required />
+            <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password" required />
+            <button type="submit" class="btn primary" id="loginBtn" style="justify-content:center;">Sign in</button>
+            <div id="loginError"></div>
+        </form>
+    </div>
+
+    <div class="wrap" id="appWrap" style="display:none;">
+
+        <header class="top">
+            <div class="brand">
+                <div class="mark">QA</div>
+                <div>
+                    <p class="eyebrow">Contact Quality · Signal Room</p>
+                    <h1>Dissat &amp; Recontact Control Room</h1>
+                    <p>Upload the CSAT/QA export to surface reason-code drivers, agent risk and tagging accuracy.</p>
+                </div>
+            </div>
+            <div class="top-actions">
+                <span class="pill" id="recordPill"><span class="dot"></span><span id="recordPillTxt">No file loaded</span></span>
+                <button class="btn ghost" id="resetFiltersBtn" style="display:none;">Reset filters</button>
+                <button class="btn" id="exportBtn" style="display:none;">Export CSV</button>
+                <button class="btn primary" id="saveFirebaseBtn" style="display:none;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                    Save to Firebase
+                </button>
+                <button class="btn" id="newFileBtn" style="display:none;">Load new file</button>
+                <span class="pill" id="userPill" style="display:none;"><span class="dot"></span><span id="userPillTxt"></span></span>
+                <button class="btn ghost" id="logoutBtn">Sign out</button>
+            </div>
+        </header>
+
+        <!-- ===== FETCH FROM FIRESTORE ===== -->
+        <div id="fetchSection">
+            <span class="lbl">📁 Fetch from Firestore</span>
+            <select id="weekSelect" disabled>
+                <option value="">Loading weeks…</option>
+            </select>
+            <button class="btn primary" id="fetchFromFirestoreBtn" disabled>Fetch Data</button>
+            <span class="status" id="fetchStatus">Scanning database…</span>
+            <span id="autoLoadStatus"><span class="spinner-sm"></span><span class="ico">⏳</span><span>Auto-loading…</span></span>
+        </div>
+
+        <!-- ===== UPLOAD STAGE ===== -->
+        <div id="uploadStage">
+            <div class="icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8593AC" stroke-width="1.6"><path d="M12 3v12m0-12l-4 4m4-4l4 4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+            </div>
+            <h2>Drop in your QA export</h2>
+            <p>Drag an .xlsx / .xls / .csv file here, or browse. The data will be displayed in the dashboard and can be saved to Firebase Firestore. Expected columns include Week, Submit Time, Agent Name, L1/L3 Reason Code, Dissat Trigger, Correct RC tagging, Evaluator, etc.</p>
+            <div class="upload-actions">
+                <button class="btn primary" id="browseBtn">Choose file</button>
+                <button class="btn" id="sampleBtn">Load sample data</button>
+            </div>
+            <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" />
+            <div id="sheetPickerWrap">Multiple sheets found — using: <select id="sheetPicker"></select></div>
+            <div id="uploadError" style="color:var(--signal);font-size:12.5px;margin-top:14px;display:none;"></div>
+        </div>
+
+        <!-- ===== DASHBOARD ===== -->
+        <div id="dashboard">
+
+            <!-- filter rail -->
+            <div class="filter-rail">
+                <div class="rail-top">
+                    <span class="lbl">Slicers</span>
+                    <div class="searchbox" style="max-width:280px;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-3.8-3.8"/></svg>
+                        <input type="text" id="freeSearch" placeholder="Search summary / reason / remarks…" />
+                    </div>
+                </div>
+                <div class="slicer-grid" id="slicerGrid"></div>
+            </div>
+
+            <!-- timeline -->
+            <div class="timeline-box">
+                <div class="timeline-head">
+                    <span class="lbl">Signal timeline · Submit Time</span>
+                    <span class="range-txt" id="rangeTxt">—</span>
+                </div>
+                <svg id="timelineWave" viewBox="0 0 1000 64" preserveAspectRatio="none"></svg>
+                <div class="slider-row">
+                    <div class="slider-track"></div>
+                    <div class="slider-fill" id="sliderFill"></div>
+                    <input type="range" id="rangeMin" min="0" max="100" value="0" />
+                    <input type="range" id="rangeMax" min="0" max="100" value="100" />
+                </div>
+            </div>
+
+            <!-- KPIs -->
+            <div class="kpi-strip" id="kpiStrip"></div>
+
+            <!-- Section: visuals -->
+            <div class="section-head">
+                <div><h2><span class="num">01</span> Reason &amp; Trend Signals</h2><p>Volume vs. dissat trend, and top drivers by L1/L3 reason code.</p></div>
+            </div>
+            <div class="grid2">
+                <div class="panel">
+                    <div class="panel-head">
+                        <h3>Cases vs. DSATs over time</h3>
+                        <span class="sub" id="trendSub"></span>
+                    </div>
+                    <canvas id="trendChart" height="230"></canvas>
+                </div>
+                <div class="panel">
+                    <div class="panel-head">
+                        <h3>Top L1 reason codes</h3>
+                        <span class="sub">click a bar to drill into L3</span>
+                    </div>
+                    <canvas id="l1Chart" height="230"></canvas>
+                </div>
+            </div>
+
+            <div class="grid2" style="margin-top:14px;">
+                <div class="panel">
+                    <div class="panel-head">
+                        <h3>L3 reason drilldown <span id="l1DrillChip"></span></h3>
+                        <span class="sub">top 10 by volume</span>
+                    </div>
+                    <canvas id="l3Chart" height="230"></canvas>
+                </div>
+                <div class="panel">
+                    <div class="panel-head">
+                        <h3>Agent risk leaderboard</h3>
+                        <div class="toggles">
+                            <button id="agentWorstBtn" class="on">Highest dissat rate</button>
+                            <button id="agentBestBtn">Lowest dissat rate</button>
+                        </div>
+                    </div>
+                    <canvas id="agentChart" height="230"></canvas>
+                    <div class="footnote">Min. 5 cases in range to qualify for ranking.</div>
+                </div>
+            </div>
+
+            <div class="section-head">
+                <div><h2><span class="num">02</span> Hour × Tenure Signal Map</h2><p>Where in the day — and with which tenure cohort — issues concentrate.</p></div>
+            </div>
+            <div class="panel" id="heatmapPanel">
+                <div class="panel-head">
+                    <h3>Contact hour vs. tenure bucket</h3>
+                    <div class="toggles">
+                        <button id="hmVolumeBtn" class="on">Volume</button>
+                        <button id="hmDissatBtn">Dissat rate</button>
+                    </div>
+                </div>
+                <div class="hm-scroll"><div id="heatmapGrid"></div></div>
+            </div>
+
+            <!-- Section: deep analysis -->
+            <div class="section-head">
+                <div><h2><span class="num">03</span> Deep Analysis</h2><p>Auto-generated read on the filtered slice — root cause, agent scorecards, recontact correlation and tagging consistency.</p></div>
+            </div>
+
+            <div class="grid2">
+                <div class="panel" id="insightsPanel">
+                    <div class="panel-head"><h3>Auto insights</h3><span class="sub">rule-based, recomputed live</span></div>
+                    <ul id="insightsList"></ul>
+                </div>
+                <div class="panel">
+                    <div class="panel-head">
+                        <h3>Root-cause Pareto (L3 reason)</h3>
+                        <span class="sub">ranked by DSAT volume, 80/20 cut</span>
+                    </div>
+                    <div class="table-scroll">
+                        <table class="datatable" id="paretoTable">
+                            <thead><tr><th data-k="l3">L3 Reason</th><th data-k="cases">Cases</th><th data-k="dsats">DSATs</th><th data-k="share">Share</th><th data-k="cum">Cum.%</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid2" style="margin-top:14px;">
+                <div class="panel">
+                    <div class="panel-head">
+                        <h3>Agent scorecard</h3>
+                        <input type="text" id="agentSearch" placeholder="filter agent…" style="background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:6px;padding:5px 9px;font-size:11.5px;" />
+                    </div>
+                    <div class="table-scroll">
+                        <table class="datatable" id="scoreTable">
+                            <thead><tr>
+                                    <th data-k="agent">Agent</th><th data-k="coach">Coach</th><th data-k="cases">Cases</th>
+                                    <th data-k="dsats">DSATs</th><th data-k="dissat">Dissat%</th><th data-k="recontact">Recontact%</th><th data-k="rc">RC Acc.%</th>
+                                </tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-head"><h3>Evaluator tagging consistency</h3><span class="sub">flags &gt;10pt below team avg.</span></div>
+                    <div class="table-scroll">
+                        <table class="datatable" id="evalTable">
+                            <thead><tr><th data-k="ev">Evaluator</th><th data-k="n">Cases QA'd</th><th data-k="acc">RC Accuracy%</th><th data-k="dsats">Avg DSATs</th><th data-k="flag">Flag</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel" style="margin-top:14px;">
+                <div class="panel-head"><h3>Recontact correlation</h3><span class="sub">where recontacts cluster</span></div>
+                <div class="crosstab-pair" id="crosstabPair"></div>
+            </div>
+
+        </div> <!-- /dashboard -->
+    </div> <!-- /wrap -->
+
+    <!-- ===== SAVE STATUS TOAST ===== -->
+    <div id="saveStatus">
+        <span class="ico" id="statusIcon">⏳</span>
+        <span id="statusMsg">Saving…</span>
+        <button class="close" id="statusClose">&times;</button>
+    </div>
+
+    <!-- ============================================================= -->
+    <!-- MAIN SCRIPT — module with Firebase integration                 -->
+    <!-- ============================================================= -->
+    <script type="module">
+        // --------------------------------------------------------------
+        // 1. FIREBASE IMPORTS & INIT
+        // --------------------------------------------------------------
+        import { initializeApp } from "firebase/app";
+        import {
+            getFirestore,
+            collection,
+            writeBatch,
+            doc,
+            query,
+            where,
+            getDocs,
+            serverTimestamp
+        } from "firebase/firestore";
+        import {
+            getAuth,
+            onAuthStateChanged,
+            signInWithEmailAndPassword,
+            signOut,
+            setPersistence,
+            browserSessionPersistence
+        } from "firebase/auth";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCYfDVASwgiH5v7YgUv9JH2eVO2keRhQjk",
+            authDomain: "dashboard-a5dc2.firebaseapp.com",
+            projectId: "dashboard-a5dc2",
+            storageBucket: "dashboard-a5dc2.firebasestorage.app",
+            messagingSenderId: "784019540563",
+            appId: "1:784019540563:web:905352fd227680df04d4a6",
+            measurementId: "G-T2XLQ36VMY"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app, "shopeemydb2026");
+        const auth = getAuth(app);
+        // Session-only persistence: the sign-in only survives for as long as
+        // this browser tab/window stays open. Closing the browser (not just
+        // navigating away) clears it, similar to a server-side session that
+        // dies when the connection ends. Reloading the same tab keeps you
+        // signed in; opening a new tab/window does not.
+        setPersistence(auth, browserSessionPersistence).catch((err) => {
+            console.warn('Could not set session persistence:', err);
+        });
+
+        // --------------------------------------------------------------
+        // 2. STATE
+        // --------------------------------------------------------------
+        const state = {
+            data: [], // normalized rows (for dashboard)
+            rawRows: [], // raw rows with original headers (for Firebase)
+            filtered: [],
+            filterValues: {},
+            filterOptions: {},
+            drillL1: null,
+            search: '',
+            dateMin: null,
+            dateMax: null,
+            rangeStart: null,
+            rangeEnd: null,
+            agentSort: 'worst',
+            hmMode: 'volume',
+            sortState: { pareto: { k: 'dsats', dir: 'desc' }, score: { k: 'dsats', dir: 'desc' }, evalT: { k: 'acc',
+                    dir: 'asc' } },
+            charts: {},
+            chartReady: false,
+            isSaving: false,
+            lastUploadedRows: 0,
+            firebaseCollection: 'table' // collection name in Firestore
+        };
+
+        const SLICER_FIELDS = [
+            { key: 'agentName', label: 'Agent' },
+            { key: 'coach', label: 'Coach' },
+            { key: 'evaluator', label: 'Evaluator' },
+            { key: 'l1Reason', label: 'L1 Reason' },
+            { key: 'l3Reason', label: 'L3 Reason' },
+            { key: 'tenureBucket', label: 'Tenure' },
+            { key: 'csatChannel', label: 'CSAT Channel' },
+            { key: 'fulfilmentChannel', label: 'Fulfilment Channel' },
+            { key: 'deliveryIssue', label: 'Delivery Issue' },
+            { key: 'correctRcTagging', label: 'Correct RC Tag' },
+            { key: 'isRecontact', label: 'Recontact' }
+        ];
+
+        // --------------------------------------------------------------
+        // 3. HEADER MAPPING + PARSING (same as index.html)
+        // --------------------------------------------------------------
+        const HEADER_RULES = [
+            [/^week$/i, 'week'],
+            [/submit\s*time/i, 'submitTime'],
+            [/agent\s*email/i, 'agentEmail'],
+            [/agent\s*name/i, 'agentName'],
+            [/agent\s*type/i, 'agentType'],
+            [/case\s*id/i, 'caseId'],
+            [/session\s*id/i, 'sessionId'],
+            [/csat\s*channel/i, 'csatChannel'],
+            [/l1.*reason/i, 'l1Reason'],
+            [/l3.*reason/i, 'l3Reason'],
+            [/^hr$/i, 'hr'],
+            [/tenure/i, 'tenureBucket'],
+            [/coach/i, 'coach'],
+            [/delivery\s*issue/i, 'deliveryIssue'],
+            [/^osn$/i, 'osn'],
+            [/fulfil?ment\s*channel/i, 'fulfilmentChannel'],
+            [/edd\s*status/i, 'eddStatus'],
+            [/gdt\s*status/i, 'gdtStatus'],
+            [/brief\s*summary/i, 'briefSummary'],
+            [/dissat\s*trigger/i, 'dissatTrigger'],
+            [/^reason$/i, 'reason'],
+            [/specific\s*parameter/i, 'specificParam'],
+            [/correct\s*rc\s*tagging/i, 'correctRcTagging'],
+            [/correct\s*l3\s*rc/i, 'correctL3Rc'],
+            [/usn/i, 'usn'],
+            [/is a user recontact|^recontact\??$/i, 'isRecontact'],
+            [/no\.?\s*of\s*recontact/i, 'numRecontact'],
+            [/no\.?\s*of\s*dsat/i, 'numDsats'],
+            [/other\s*remarks/i, 'otherRemarks'],
+            [/evaluator/i, 'evaluator']
+        ];
+        const CANON_LABEL = {
+            week: 'Week',
+            submitTime: 'Submit Time',
+            agentEmail: 'Agent Email',
+            agentName: 'Agent Name',
+            agentType: 'Agent Type',
+            caseId: 'Case ID',
+            sessionId: 'Session ID',
+            csatChannel: 'CSAT Channel',
+            l1Reason: 'L1 Reason Code Name',
+            l3Reason: 'L3 Reason Code Name',
+            hr: 'Hr',
+            tenureBucket: 'Tenure Bucket',
+            coach: 'Coach',
+            deliveryIssue: 'Delivery Issue?',
+            osn: 'OSN',
+            fulfilmentChannel: 'Fulfilment Channel',
+            eddStatus: 'EDD status',
+            gdtStatus: 'GDT Status',
+            briefSummary: 'Brief Summary of the Contact',
+            dissatTrigger: 'Dissat Trigger',
+            reason: 'Reason',
+            specificParam: 'Specific Parameter/Behavior',
+            correctRcTagging: 'Correct RC tagging?',
+            correctL3Rc: 'Correct L3 RC',
+            usn: 'USN of the user',
+            isRecontact: 'Is a user recontact?',
+            numRecontact: 'No. of Recontact',
+            numDsats: 'No. of DSATs',
+            otherRemarks: 'Other remarks',
+            evaluator: 'EVALUATOR'
+        };
+
+        function canonicalKeyFor(header) {
+            const h = String(header || '').trim();
+            for (const [re, key] of HEADER_RULES) {
+                if (re.test(h)) return key;
+            }
+            return null;
+        }
+
+        function parseDateVal(v) {
+            if (v === null || v === undefined || v === '') return null;
+            if (v instanceof Date && !isNaN(v)) return v;
+            if (typeof v === 'number') {
+                const d = XLSX.SSF ? XLSX.SSF.parse_date_code(v) : null;
+                if (d) return new Date(Date.UTC(d.y, d.m - 1, d.d, d.H || 0, d.M || 0, Math.floor(d.S || 0)));
+            }
+            const d2 = new Date(v);
+            return isNaN(d2) ? null : d2;
+        }
+
+        function toBoolTri(v) {
+            if (v === null || v === undefined) return null;
+            const s = String(v).trim().toLowerCase();
+            if (s === '') return null;
+            if (/^y(es)?$/.test(s) || s === 'true' || s === '1') return true;
+            if (/^n(o)?$/.test(s) || s === 'false' || s === '0') return false;
+            return null;
+        }
+
+        function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+
+        function fmtDate(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+
+        function fmtDateShort(d) {
+            const m = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            return d.getDate() + ' ' + m[d.getMonth()];
+        }
+
+        // Normalize rows: map headers to canonical keys
+        function normalizeRows(rawRows) {
+            return rawRows.map(raw => {
+                const row = {};
+                for (const k in raw) {
+                    const ck = canonicalKeyFor(k);
+                    if (ck) row[ck] = raw[k];
+                }
+                if (raw.Week !== undefined) row.week = raw.Week;
+                if (raw['Week'] !== undefined) row.week = raw['Week'];
+
+                const submitTime = parseDateVal(row.submitTime);
+                return {
+                    week: (row.week !== undefined && row.week !== null && row.week !== '') ? String(row.week)
+                    .trim() : null,
+                    submitTime,
+                    dateStr: submitTime ? fmtDate(submitTime) : null,
+                    agentEmail: (row.agentEmail || '').toString().trim(),
+                    agentName: (row.agentName || 'Unknown').toString().trim() || 'Unknown',
+                    agentType: (row.agentType || '').toString().trim(),
+                    caseId: (row.caseId || '').toString().trim(),
+                    sessionId: (row.sessionId || '').toString().trim(),
+                    csatChannel: (row.csatChannel || 'Unspecified').toString().trim() || 'Unspecified',
+                    l1Reason: (row.l1Reason || 'Unspecified').toString().trim() || 'Unspecified',
+                    l3Reason: (row.l3Reason || 'Unspecified').toString().trim() || 'Unspecified',
+                    hr: (row.hr !== undefined && row.hr !== '' && !isNaN(parseInt(row.hr))) ? (parseInt(row.hr) %
+                        24) : (submitTime ? submitTime.getHours() : null),
+                    tenureBucket: (row.tenureBucket || 'Unspecified').toString().trim() || 'Unspecified',
+                    coach: (row.coach || 'Unassigned').toString().trim() || 'Unassigned',
+                    deliveryIssue: toBoolTri(row.deliveryIssue),
+                    osn: (row.osn || '').toString().trim(),
+                    fulfilmentChannel: (row.fulfilmentChannel || 'Unspecified').toString().trim() || 'Unspecified',
+                    eddStatus: (row.eddStatus || 'Unspecified').toString().trim() || 'Unspecified',
+                    gdtStatus: (row.gdtStatus || 'Unspecified').toString().trim() || 'Unspecified',
+                    briefSummary: (row.briefSummary || '').toString(),
+                    dissatTrigger: (row.dissatTrigger || '').toString().trim(),
+                    reason: (row.reason || '').toString().trim(),
+                    specificParam: (row.specificParam || '').toString().trim(),
+                    correctRcTagging: toBoolTri(row.correctRcTagging),
+                    correctL3Rc: (row.correctL3Rc || '').toString().trim(),
+                    usn: (row.usn || '').toString().trim(),
+                    isRecontact: toBoolTri(row.isRecontact),
+                    numRecontact: parseFloat(row.numRecontact) || 0,
+                    numDsats: parseFloat(row.numDsats) || 0,
+                    otherRemarks: (row.otherRemarks || '').toString(),
+                    evaluator: (row.evaluator || 'Unassigned').toString().trim() || 'Unassigned'
+                };
+            });
+        }
+
+        // --------------------------------------------------------------
+        // 4. SAMPLE DATA GENERATOR (same as index.html)
+        // --------------------------------------------------------------
+        function generateSample() {
+            const agents = ['A. Santos', 'B. Cruz', 'C. Reyes', 'D. Tan', 'E. Garcia', 'F. Bautista', 'G. Lim',
+                'H. Mendoza', 'I. Ramos', 'J. Torres', 'K. Flores', 'L. Dela Cruz'
+            ];
+            const coaches = ['Team Alpha', 'Team Bravo', 'Team Charlie'];
+            const evaluators = ['QA-1', 'QA-2', 'QA-3', 'QA-4'];
+            const l1l3 = {
+                'Delivery Delay': ['Courier delay', 'Weather disruption', 'Address issue', 'Warehouse delay'],
+                'Wrong Item': ['Wrong SKU picked', 'Size mismatch', 'Color mismatch'],
+                'Refund Issue': ['Refund not processed', 'Refund amount incorrect', 'Refund method dispute'],
+                'App/Tech Issue': ['App crash', 'Payment failure', 'Tracking not updating'],
+                'Agent Behavior': ['Rude tone', 'Incomplete resolution', 'Wrong info given'],
+                'Cancellation': ['Order cancelled by system', 'Late cancellation fee']
+            };
+            const l1s = Object.keys(l1l3);
+            const tenures = ['0-3 months', '3-6 months', '6-12 months', '1-2 years', '2+ years'];
+            const channels = ['Chat', 'Call', 'Email'];
+            const fulfil = ['Own Fleet', '3PL', 'Marketplace'];
+            const edd = ['On Time', 'Delayed', 'Not Met'];
+            const gdt = ['Met', 'Breached'];
+            const rows = [];
+            const today = new Date();
+            today.setHours(10, 0, 0, 0);
+            let caseCounter = 100000;
+            let weekCounter = 1;
+            for (let d = 89; d >= 0; d--) {
+                const day = new Date(today);
+                day.setDate(day.getDate() - d);
+                const volume = 8 + Math.round(Math.random() * 14) + (day.getDay() === 1 ? 6 : 0);
+                const weekNum = Math.ceil((90 - d) / 7);
+                for (let i = 0; i < volume; i++) {
+                    const l1 = l1s[Math.floor(Math.random() * l1s.length)];
+                    const l3opts = l1l3[l1];
+                    const l3 = l3opts[Math.floor(Math.random() * l3opts.length)];
+                    const agent = agents[Math.floor(Math.random() * agents.length)];
+                    const hr = Math.max(0, Math.min(23, Math.round((Math.random() * 8 + 9) + (Math.random() < 0.15 ? (
+                        Math.random() * 6 - 3) : 0))));
+                    const isDelivery = l1 === 'Delivery Delay' || l1 === 'Cancellation' ? (Math.random() < 0.7) : (
+                        Math.random() < 0.15);
+                    const dissat = Math.random() < (isDelivery ? 0.55 : 0.32);
+                    const numDsats = dissat ? (Math.random() < 0.8 ? 1 : 2) : 0;
+                    const recontact = dissat && Math.random() < 0.4;
+                    const correctTag = Math.random() < (agent === 'D. Tan' || agent === 'K. Flores' ? 0.68 : 0.89);
+                    const t = new Date(day);
+                    t.setHours(hr, Math.floor(Math.random() * 60), 0, 0);
+                    rows.push({
+                        'Week': 'W' + weekNum,
+                        'Submit Time': t,
+                        'Agent Email': agent.toLowerCase().replace(/[^a-z]/g, '') + '@company.com',
+                        'Agent Name': agent,
+                        'Agent Type': 'Human',
+                        'Case ID': 'CS' + (caseCounter++),
+                        'Session ID': 'SS' + Math.floor(Math.random() * 999999),
+                        'CSAT Channel': channels[Math.floor(Math.random() * channels.length)],
+                        'L1 Reason Code Name': l1,
+                        'L3 Reason Code Name': l3,
+                        'Hr': hr,
+                        'Tenure Bucket': tenures[agents.indexOf(agent) % tenures.length],
+                        'Coach': coaches[agents.indexOf(agent) % coaches.length],
+                        'Delivery Issue?': isDelivery ? 'Yes' : 'No',
+                        'OSN': 'OSN' + Math.floor(Math.random() * 99999),
+                        'Fulfilment Channel': fulfil[Math.floor(Math.random() * fulfil.length)],
+                        'EDD status': edd[Math.floor(Math.random() * edd.length)],
+                        'GDT Status': gdt[Math.floor(Math.random() * gdt.length)],
+                        'Brief Summary of the Contact': dissat ? ('Customer unhappy about ' + l3.toLowerCase()) :
+                            ('Routine query about ' + l3.toLowerCase()),
+                        'Dissat Trigger': dissat ? l3 : '',
+                        'Reason': dissat ? l1 : '',
+                        'Specific Parameter/Behavior': dissat ? (Math.random() < 0.4 ? 'Resolution time' :
+                            'Communication clarity') : '',
+                        'Correct RC tagging?': correctTag ? 'Yes' : 'No',
+                        'Correct L3 RC': correctTag ? l3 : l3opts[(l3opts.indexOf(l3) + 1) % l3opts.length],
+                        'USN of the user': 'USN' + Math.floor(Math.random() * 9999999),
+                        'Is a user recontact?': recontact ? 'Yes' : 'No',
+                        'No. of Recontact': recontact ? 1 : 0,
+                        'No. of DSATs': numDsats,
+                        'Other remarks': '',
+                        'EVALUATOR': evaluators[Math.floor(Math.random() * evaluators.length)]
+                    });
+                }
+            }
+            return rows;
+        }
+
+        // --------------------------------------------------------------
+        // 5. FILE HANDLING
+        // --------------------------------------------------------------
+        const uploadStage = document.getElementById('uploadStage');
+        const fileInput = document.getElementById('fileInput');
+        const browseBtn = document.getElementById('browseBtn');
+        const sampleBtn = document.getElementById('sampleBtn');
+        const sheetPickerWrap = document.getElementById('sheetPickerWrap');
+        const sheetPicker = document.getElementById('sheetPicker');
+        const uploadError = document.getElementById('uploadError');
+        let lastWorkbook = null;
+
+        browseBtn.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
+        sampleBtn.addEventListener('click', () => { bootFromRawRows(generateSample()); });
+
+        ['dragover', 'dragenter'].forEach(ev => uploadStage.addEventListener(ev, e => { e.preventDefault();
+            uploadStage.classList.add('drag'); }));
+        ['dragleave', 'drop'].forEach(ev => uploadStage.addEventListener(ev, e => { e.preventDefault();
+            uploadStage.classList.remove('drag'); }));
+        uploadStage.addEventListener('drop', e => { if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
+
+        function handleFile(file) {
+            uploadError.style.display = 'none';
+            const reader = new FileReader();
+            reader.onload = evt => {
+                try {
+                    const data = new Uint8Array(evt.target.result);
+                    const wb = XLSX.read(data, { type: 'array', cellDates: true });
+                    lastWorkbook = wb;
+                    if (wb.SheetNames.length > 1) {
+                        sheetPickerWrap.style.display = 'block';
+                        sheetPicker.innerHTML = wb.SheetNames.map(n => '<option value="' + n + '">' + n +
+                            '</option>').join('');
+                        sheetPicker.onchange = () => loadSheet(wb, sheetPicker.value);
+                    } else {
+                        sheetPickerWrap.style.display = 'none';
+                    }
+                    loadSheet(wb, wb.SheetNames[0]);
+                } catch (err) {
+                    showUploadError('Could not read that file. Please upload a valid .xlsx, .xls or .csv export. (' +
+                        err.message + ')');
+                }
+            };
+            reader.onerror = () => showUploadError('Failed to read the file.');
+            reader.readAsArrayBuffer(file);
+        }
+
+        function loadSheet(wb, name) {
+            const sheet = wb.Sheets[name];
+            const rawRows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+            if (!rawRows.length) { showUploadError('That sheet has no data rows.'); return; }
+            bootFromRawRows(rawRows);
+        }
+
+        function showUploadError(msg) {
+            uploadError.textContent = msg;
+            uploadError.style.display = 'block';
+        }
+
+        // --------------------------------------------------------------
+        // 6. BOOT FROM RAW ROWS — save raw + normalize and render dashboard
+        // --------------------------------------------------------------
+        function bootFromRawRows(rawRows) {
+            state.rawRows = rawRows;
+            const normalized = normalizeRows(rawRows);
+            state.data = normalized;
+            state.lastUploadedRows = normalized.length;
+
+            const mappedCount = Object.keys(CANON_LABEL).filter(k => normalized.some(r => r[k] !== undefined && r[k] !==
+                null && r[k] !== '')).length;
+            document.getElementById('recordPillTxt').textContent = normalized.length.toLocaleString() + ' rows · ' +
+                mappedCount + '/' + Object.keys(CANON_LABEL).length + ' fields detected';
+
+            document.getElementById('uploadStage').style.display = 'none';
+            document.getElementById('dashboard').style.display = 'block';
+            document.getElementById('exportBtn').style.display = 'inline-flex';
+            document.getElementById('newFileBtn').style.display = 'inline-flex';
+            document.getElementById('resetFiltersBtn').style.display = 'inline-flex';
+            document.getElementById('saveFirebaseBtn').style.display = 'inline-flex';
+
+            initFilters();
+            initTimeline();
+            render();
+        }
+
+        document.getElementById('newFileBtn').addEventListener('click', () => {
+            document.getElementById('dashboard').style.display = 'none';
+            document.getElementById('uploadStage').style.display = 'block';
+            fileInput.value = '';
+            document.getElementById('saveFirebaseBtn').style.display = 'none';
+        });
+
+        // --------------------------------------------------------------
+        // 7. SAVE TO FIREBASE
+        // --------------------------------------------------------------
+        const saveBtn = document.getElementById('saveFirebaseBtn');
+        const saveStatus = document.getElementById('saveStatus');
+        const statusIcon = document.getElementById('statusIcon');
+        const statusMsg = document.getElementById('statusMsg');
+        const statusClose = document.getElementById('statusClose');
+
+        function showSaveStatus(icon, msg, isError = false) {
+            saveStatus.className = 'show';
+            statusIcon.textContent = icon;
+            statusIcon.className = 'ico ' + (isError ? 'err' : 'ok');
+            statusMsg.textContent = msg;
+            if (!isError) {
+                clearTimeout(window._saveTimeout);
+                window._saveTimeout = setTimeout(() => { saveStatus.classList.remove('show'); }, 6000);
+            }
+        }
+
+        function hideSaveStatus() { saveStatus.classList.remove('show'); }
+        statusClose.addEventListener('click', hideSaveStatus);
+
+        saveBtn.addEventListener('click', async () => {
+            if (state.isSaving) return;
+            if (!state.rawRows.length) {
+                showSaveStatus('⚠️', 'No data to save. Upload an Excel file first.', true);
+                return;
+            }
+            state.isSaving = true;
+            saveBtn.disabled = true;
+            showSaveStatus('⏳', 'Saving ' + state.rawRows.length + ' rows to Firebase…');
+            try {
+                await saveToFirestoreInBatches(state.rawRows);
+                showSaveStatus('✅', 'Successfully saved ' + state.rawRows.length + ' rows to Firebase!');
+                await loadAvailableWeeks();
+            } catch (err) {
+                console.error('Firebase save error:', err);
+                showSaveStatus('❌', 'Error saving: ' + (err.message || 'unknown error'), true);
+            } finally {
+                state.isSaving = false;
+                saveBtn.disabled = false;
+            }
+        });
+
+        async function saveToFirestoreInBatches(rows) {
+            const colRef = collection(db, state.firebaseCollection);
+            const batchSize = 500;
+            for (let i = 0; i < rows.length; i += batchSize) {
+                const chunk = rows.slice(i, i + batchSize);
+                const batch = writeBatch(db);
+                for (let j = 0; j < chunk.length; j++) {
+                    const raw = chunk[j];
+                    const docData = { ...raw };
+                    for (const k in docData) {
+                        if (docData[k] instanceof Date) docData[k] = docData[k].toISOString();
+                    }
+                    docData._savedAt = serverTimestamp();
+                    docData._rowIndex = i + j;
+                    docData._totalRows = rows.length;
+                    docData._batchId = 'batch_' + Date.now() + '_' + i;
+                    const ref = doc(colRef);
+                    batch.set(ref, docData);
+                }
+                await batch.commit();
+                const done = Math.min(i + batchSize, rows.length);
+                showSaveStatus('⏳', 'Saved ' + done + ' / ' + rows.length + ' rows…');
+            }
+        }
+
+        // --------------------------------------------------------------
+        // 8. FETCH FROM FIRESTORE BY WEEK (dropdown)
+        // --------------------------------------------------------------
+        const weekSelect = document.getElementById('weekSelect');
+        const fetchFromFirestoreBtn = document.getElementById('fetchFromFirestoreBtn');
+        const fetchStatus = document.getElementById('fetchStatus');
+        const autoLoadStatus = document.getElementById('autoLoadStatus');
+
+        // Load available weeks from Firestore
+        async function loadAvailableWeeks() {
+            try {
+                const tableRef = collection(db, state.firebaseCollection);
+                const querySnapshot = await getDocs(tableRef);
+
+                const availableWeeks = new Set();
+                querySnapshot.forEach(docSnap => {
+                    const data = docSnap.data();
+                    let weekVal = data.Week !== undefined ? data.Week : data.week;
+                    if (weekVal !== undefined && weekVal !== null && weekVal !== '') {
+                        const numWeek = Number(weekVal);
+                        if (!isNaN(numWeek)) {
+                            availableWeeks.add(numWeek);
+                        } else {
+                            // Try to extract number from string like 'W1'
+                            const match = String(weekVal).match(/\d+/);
+                            if (match) {
+                                availableWeeks.add(Number(match[0]));
+                            }
+                        }
+                    }
+                });
+
+                const sortedWeeks = Array.from(availableWeeks).sort((a, b) => a - b);
+
+                weekSelect.innerHTML = '';
+                if (sortedWeeks.length === 0) {
+                    weekSelect.innerHTML = '<option value="">No weeks found</option>';
+                    weekSelect.disabled = true;
+                    fetchFromFirestoreBtn.disabled = true;
+                    fetchStatus.textContent = 'No data in Firestore collection "' + state.firebaseCollection + '"';
+                    return;
+                }
+
+                sortedWeeks.forEach(week => {
+                    const option = document.createElement('option');
+                    option.value = week;
+                    option.textContent = 'Week ' + week;
+                    weekSelect.appendChild(option);
+                });
+
+                weekSelect.disabled = false;
+                fetchFromFirestoreBtn.disabled = false;
+                fetchStatus.textContent = sortedWeeks.length + ' week(s) available';
+            } catch (err) {
+                console.error('Error loading weeks:', err);
+                fetchStatus.textContent = 'Error loading weeks: ' + err.message;
+                weekSelect.disabled = true;
+                fetchFromFirestoreBtn.disabled = true;
+            }
+        }
+
+        // --------------------------------------------------------------
+        // 8b. AUTO-LOAD ALL DATA FROM FIRESTORE ON PAGE LOAD
+        // --------------------------------------------------------------
+        async function loadAllData() {
+            autoLoadStatus.className = 'loading';
+            autoLoadStatus.querySelector('.ico').textContent = '⏳';
+            autoLoadStatus.querySelector('span:last-child').textContent = 'Auto-loading…';
+
+            try {
+                const tableRef = collection(db, state.firebaseCollection);
+                const querySnapshot = await getDocs(tableRef);
+                const results = [];
+                querySnapshot.forEach(docSnap => {
+                    const data = docSnap.data();
+                    // Convert ISO date strings back to Date objects
+                    for (const k in data) {
+                        if (typeof data[k] === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(data[k])) {
+                            const d = new Date(data[k]);
+                            if (!isNaN(d)) data[k] = d;
+                        }
+                    }
+                    results.push(data);
+                });
+
+                if (results.length) {
+                    bootFromRawRows(results);
+                    fetchStatus.textContent = '✅ Auto-loaded ' + results.length + ' rows from Firestore';
+                    autoLoadStatus.className = '';
+                    autoLoadStatus.querySelector('.ico').textContent = '✅';
+                    autoLoadStatus.querySelector('span:last-child').textContent = 'Auto-loaded ' + results.length +
+                        ' rows';
+                } else {
+                    fetchStatus.textContent = '📭 No data found in Firestore. Upload a file to get started.';
+                    autoLoadStatus.className = '';
+                    autoLoadStatus.querySelector('.ico').textContent = '📭';
+                    autoLoadStatus.querySelector('span:last-child').textContent = 'No data in Firestore';
+                }
+            } catch (err) {
+                console.error('Error auto-loading data:', err);
+                fetchStatus.textContent = '❌ Error auto-loading: ' + err.message;
+                autoLoadStatus.className = '';
+                autoLoadStatus.querySelector('.ico').textContent = '❌';
+                autoLoadStatus.querySelector('span:last-child').textContent = 'Auto-load error';
+            }
+        }
+
+        // Week fetch button
+        fetchFromFirestoreBtn.addEventListener('click', async () => {
+            const selectedWeek = weekSelect.value;
+            if (!selectedWeek) {
+                alert('Please select a week.');
+                return;
+            }
+            const weekNum = Number(selectedWeek);
+            if (isNaN(weekNum)) {
+                alert('Invalid week number.');
+                return;
+            }
+
+            fetchFromFirestoreBtn.disabled = true;
+            fetchStatus.textContent = 'Fetching week ' + weekNum + '…';
+
+            try {
+                const tableRef = collection(db, state.firebaseCollection);
+                const q = query(tableRef, where("Week", "==", weekNum));
+                const querySnapshot = await getDocs(q);
+                const results = [];
+                querySnapshot.forEach(docSnap => {
+                    const data = docSnap.data();
+                    for (const k in data) {
+                        if (typeof data[k] === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(data[k])) {
+                            const d = new Date(data[k]);
+                            if (!isNaN(d)) data[k] = d;
+                        }
+                    }
+                    results.push(data);
+                });
+                if (!results.length) {
+                    alert('No records found for Week ' + weekNum);
+                    fetchStatus.textContent = 'No records for week ' + weekNum;
+                    fetchFromFirestoreBtn.disabled = false;
+                    return;
+                }
+                bootFromRawRows(results);
+                fetchStatus.textContent = 'Loaded ' + results.length + ' rows from week ' + weekNum;
+                // Update auto-load status to reflect manual fetch
+                autoLoadStatus.className = '';
+                autoLoadStatus.querySelector('.ico').textContent = '📁';
+                autoLoadStatus.querySelector('span:last-child').textContent = 'Week ' + weekNum + ' loaded';
+            } catch (err) {
+                console.error('Fetch error:', err);
+                alert('Error fetching data: ' + err.message);
+                fetchStatus.textContent = 'Error: ' + err.message;
+            } finally {
+                fetchFromFirestoreBtn.disabled = false;
+            }
+        });
+
+        // --------------------------------------------------------------
+        // 9. SLICERS
+        // --------------------------------------------------------------
+        function initFilters() {
+            SLICER_FIELDS.forEach(f => state.filterValues[f.key] = new Set());
+            const grid = document.getElementById('slicerGrid');
+            grid.innerHTML = '';
+            SLICER_FIELDS.forEach(f => {
+                const wrap = document.createElement('div');
+                wrap.className = 'slicer';
+                wrap.dataset.field = f.key;
+                wrap.innerHTML =
+                    '<button type="button"><span class="lbltxt">' + f.label +
+                    '</span><span class="count" style="display:none;"></span></button><div class="slicer-panel"></div>';
+                grid.appendChild(wrap);
+                wrap.querySelector('button').addEventListener('click', e => {
+                    e.stopPropagation();
+                    const wasOpen = wrap.classList.contains('open');
+                    document.querySelectorAll('.slicer.open').forEach(s => s.classList.remove('open'));
+                    if (!wasOpen) { wrap.classList.add('open');
+                        buildSlicerPanel(f); }
+                });
+            });
+            document.addEventListener('click', () => document.querySelectorAll('.slicer.open').forEach(s => s.classList
+                .remove('open')));
+
+            document.getElementById('freeSearch').addEventListener('input', e => {
+                state.search = e.target.value.trim().toLowerCase();
+                render();
+            });
+            document.getElementById('resetFiltersBtn').addEventListener('click', () => {
+                SLICER_FIELDS.forEach(f => state.filterValues[f.key].clear());
+                state.drillL1 = null;
+                state.search = '';
+                document.getElementById('freeSearch').value = '';
+                state.rangeStart = state.dateMin;
+                state.rangeEnd = state.dateMax;
+                syncTimelineUI();
+                render();
+            });
+            document.getElementById('exportBtn').addEventListener('click', exportCSV);
+        }
+
+        function fieldValueCounts(field, excludeField) {
+            const counts = new Map();
+            baseFiltered(excludeField).forEach(row => {
+                let v = row[field];
+                if (v === true) v = 'Yes';
+                else if (v === false) v = 'No';
+                else if (v === null || v === undefined || v === '') v = 'Unspecified';
+                counts.set(v, (counts.get(v) || 0) + 1);
+            });
+            return [...counts.entries()].sort((a, b) => b[1] - a[1]);
+        }
+
+        function buildSlicerPanel(f) {
+            const wrap = document.querySelector('.slicer[data-field="' + f.key + '"]');
+            const panel = wrap.querySelector('.slicer-panel');
+            const opts = fieldValueCounts(f.key, f.key);
+            panel.innerHTML = '<input type="text" class="search" placeholder="Search ' + f.label +
+                '…">' +
+                '<div class="row-actions"><button data-act="all">Select all</button><button data-act="none">Clear</button></div>' +
+                '<div class="opts"></div>';
+            const optsEl = panel.querySelector('.opts');
+
+            function draw(filterTxt) {
+                optsEl.innerHTML = '';
+                opts.filter(([v]) => !filterTxt || String(v).toLowerCase().includes(filterTxt)).forEach(([v, n]) => {
+                    const id = 'opt_' + f.key + '_' + String(v).replace(/[^a-z0-9]/gi, '_');
+                    const row = document.createElement('label');
+                    row.className = 'slicer-opt';
+                    row.innerHTML = '<input type="checkbox" id="' + id + '"><span>' + escapeHtml(String(v)) +
+                        '</span><span class="n">' + n + '</span>';
+                    const cb = row.querySelector('input');
+                    cb.checked = state.filterValues[f.key].has(v);
+                    cb.addEventListener('change', () => {
+                        if (cb.checked) state.filterValues[f.key].add(v);
+                        else state.filterValues[f.key].delete(v);
+                        updateSlicerButtonState(f);
+                        render();
+                    });
+                    optsEl.appendChild(row);
+                });
+            }
+            draw('');
+            panel.querySelector('.search').addEventListener('input', e => draw(e.target.value.toLowerCase()));
+            panel.querySelector('[data-act="all"]').addEventListener('click', () => { opts.forEach(([v]) => state
+                    .filterValues[f.key].add(v));
+                buildSlicerPanel(f);
+                updateSlicerButtonState(f);
+                render(); });
+            panel.querySelector('[data-act="none"]').addEventListener('click', () => { state.filterValues[f.key]
+                    .clear();
+                buildSlicerPanel(f);
+                updateSlicerButtonState(f);
+                render(); });
+            panel.addEventListener('click', e => e.stopPropagation());
+        }
+
+        function updateSlicerButtonState(f) {
+            const wrap = document.querySelector('.slicer[data-field="' + f.key + '"]');
+            const n = state.filterValues[f.key].size;
+            const countEl = wrap.querySelector('.count');
+            countEl.style.display = n ? 'inline-block' : 'none';
+            countEl.textContent = n;
+            wrap.classList.toggle('active', n > 0);
+        }
+
+        function escapeHtml(s) { return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;',
+                "'": '&#39;' })[c]); }
+
+        function baseFiltered(excludeField) {
+            return state.data.filter(row => {
+                for (const f of SLICER_FIELDS) {
+                    if (f.key === excludeField) continue;
+                    const sel = state.filterValues[f.key];
+                    if (sel.size === 0) continue;
+                    let v = row[f.key];
+                    if (v === true) v = 'Yes';
+                    else if (v === false) v = 'No';
+                    else if (v === null || v === undefined || v === '') v = 'Unspecified';
+                    if (!sel.has(v)) return false;
+                }
+                if (state.drillL1 && row.l1Reason !== state.drillL1) return false;
+                if (state.search) {
+                    const hay = (row.briefSummary + ' ' + row.reason + ' ' + row.otherRemarks + ' ' + row.specificParam +
+                        ' ' + row.dissatTrigger).toLowerCase();
+                    if (!hay.includes(state.search)) return false;
+                }
+                return true;
+            });
+        }
+
+        function inRange(row) {
+            if (!state.rangeStart || !state.rangeEnd) return true;
+            if (!row.submitTime) return false;
+            return row.submitTime >= state.rangeStart && row.submitTime <= state.rangeEnd;
+        }
+
+        function getFiltered() { return baseFiltered(null).filter(inRange); }
+
+        // --------------------------------------------------------------
+        // 10. TIMELINE
+        // --------------------------------------------------------------
+        function initTimeline() {
+            const dates = state.data.map(r => r.submitTime).filter(Boolean);
+            if (!dates.length) {
+                state.dateMin = new Date();
+                state.dateMax = new Date();
+            } else {
+                state.dateMin = new Date(Math.min(...dates));
+                state.dateMax = new Date(Math.max(...dates));
+            }
+            state.rangeStart = new Date(state.dateMin);
+            state.rangeEnd = new Date(state.dateMax);
+            const rmin = document.getElementById('rangeMin'),
+                rmax = document.getElementById('rangeMax');
+            rmin.value = 0;
+            rmax.value = 100;
+            rmin.addEventListener('input', onSliderChange);
+            rmax.addEventListener('input', onSliderChange);
+            drawTimelineWave();
+            syncTimelineUI();
+        }
+
+        function totalSpanMs() { return Math.max(1, state.dateMax - state.dateMin); }
+
+        function onSliderChange() {
+            let a = parseFloat(document.getElementById('rangeMin').value);
+            let b = parseFloat(document.getElementById('rangeMax').value);
+            if (a > b) { [a, b] = [b, a]; }
+            const span = totalSpanMs();
+            state.rangeStart = new Date(state.dateMin.getTime() + span * (a / 100));
+            state.rangeEnd = new Date(state.dateMin.getTime() + span * (b / 100));
+            syncTimelineUI(true);
+            render();
+        }
+
+        function syncTimelineUI(skipInputSync) {
+            const span = totalSpanMs();
+            const a = ((state.rangeStart - state.dateMin) / span) * 100;
+            const b = ((state.rangeEnd - state.dateMin) / span) * 100;
+            if (!skipInputSync) {
+                document.getElementById('rangeMin').value = a;
+                document.getElementById('rangeMax').value = b;
+            }
+            document.getElementById('sliderFill').style.left = a + '%';
+            document.getElementById('sliderFill').style.width = Math.max(0, (b - a)) + '%';
+            document.getElementById('rangeTxt').textContent = fmtDateShort(state.rangeStart) + ' \u2192 ' + fmtDateShort(
+                state.rangeEnd);
+        }
+
+        function drawTimelineWave() {
+            const svg = document.getElementById('timelineWave');
+            const byDay = new Map();
+            state.data.forEach(r => { if (r.dateStr) byDay.set(r.dateStr, (byDay.get(r.dateStr) || 0) + 1); });
+            const days = [];
+            let d = new Date(state.dateMin);
+            while (d <= state.dateMax) { days.push(fmtDate(d));
+                d.setDate(d.getDate() + 1); }
+            if (!days.length) { svg.innerHTML = ''; return; }
+            const max = Math.max(1, ...days.map(k => byDay.get(k) || 0));
+            const w = 1000,
+                h = 64,
+                bw = w / days.length;
+            let bars = '';
+            days.forEach((k, i) => {
+                const v = byDay.get(k) || 0;
+                const bh = (v / max) * h * 0.92;
+                bars += '<rect x="' + (i * bw + 0.5) + '" y="' + (h - bh) + '" width="' + Math.max(0.6, bw - 1) +
+                    '" height="' + bh + '" fill="#2a3d63" />';
+            });
+            svg.innerHTML = bars;
+        }
+
+        // --------------------------------------------------------------
+        // 11. AGGREGATION HELPERS
+        // --------------------------------------------------------------
+        function pct(n, d) { return d > 0 ? (n / d * 100) : 0; }
+
+        function groupBy(rows, key) {
+            const m = new Map();
+            rows.forEach(r => { const k = r[key]; if (!m.has(k)) m.set(k, []);
+                m.get(k).push(r); });
+            return m;
+        }
+
+        function lerpColor(a, b, t) {
+            t = Math.max(0, Math.min(1, t));
+            const ah = parseInt(a, 16),
+                bh = parseInt(b, 16);
+            const ar = (ah >> 16) & 255,
+                ag = (ah >> 8) & 255,
+                ab = ah & 255;
+            const br = (bh >> 16) & 255,
+                bg = (bh >> 8) & 255,
+                bb = bh & 255;
+            return 'rgb(' + Math.round(ar + (br - ar) * t) + ',' + Math.round(ag + (bg - ag) * t) + ',' + Math.round(ab + (
+                bb - ab) * t) + ')';
+        }
+
+        function sparkPath(values, w, h) {
+            if (!values.length) return '';
+            const max = Math.max(...values, 1),
+                min = Math.min(...values, 0);
+            const range = (max - min) || 1;
+            const step = values.length > 1 ? w / (values.length - 1) : w;
+            return values.map((v, i) => {
+                const x = i * step;
+                const y = h - ((v - min) / range) * h * 0.85 - 2;
+                return (i === 0 ? 'M' : 'L') + x.toFixed(1) + ',' + y.toFixed(1);
+            }).join(' ');
+        }
+
+        function dailySeries(rows, valueFn) {
+            const m = new Map();
+            rows.forEach(r => { if (!r.dateStr) return; if (!m.has(r.dateStr)) m.set(r.dateStr, []);
+                m.get(r.dateStr).push(r); });
+            const days = [...m.keys()].sort();
+            return days.map(d => valueFn(m.get(d)));
+        }
+
+        // --------------------------------------------------------------
+        // 12. CHART.JS SAFETY
+        // --------------------------------------------------------------
+        function isChartReady() { return typeof Chart !== 'undefined' && Chart !== null; }
+
+        function showChartFallback(canvasId, message) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            const parent = canvas.parentNode;
+            const existing = parent.querySelector('.chart-placeholder');
+            if (existing) existing.remove();
+            const div = document.createElement('div');
+            div.className = 'chart-placeholder';
+            div.textContent = message ||
+                'Chart library not loaded. Please check your internet connection and refresh.';
+            parent.appendChild(div);
+            canvas.style.display = 'none';
+        }
+
+        function upsertChart(canvasId, type, data, options, onClick) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            const parent = canvas.parentNode;
+            const placeholder = parent.querySelector('.chart-placeholder');
+            if (placeholder) placeholder.remove();
+            canvas.style.display = 'block';
+            if (!isChartReady()) {
+                showChartFallback(canvasId, 'Chart.js is loading… please refresh if this persists.');
+                if (!window._chartRetry) {
+                    window._chartRetry = true;
+                    setTimeout(() => {
+                        if (isChartReady()) { render(); } else {
+                            showChartFallback(canvasId,
+                                'Chart.js could not be loaded. Please check your internet connection and refresh the page.'
+                                );
+                        }
+                        window._chartRetry = false;
+                    }, 2000);
+                }
+                return;
+            }
+            try {
+                if (state.charts[canvasId]) { state.charts[canvasId].destroy();
+                    delete state.charts[canvasId]; }
+                const cfg = { type, data, options: options || {} };
+                if (onClick) cfg.options.onClick = onClick;
+                state.charts[canvasId] = new Chart(canvas.getContext('2d'), cfg);
+            } catch (e) {
+                console.warn('Chart error for ' + canvasId + ':', e);
+                showChartFallback(canvasId, 'Error rendering chart. Try refreshing or check the console.');
+            }
+        }
+
+        // --------------------------------------------------------------
+        // 13. MAIN RENDER
+        // --------------------------------------------------------------
+        function render() {
+            const filtered = getFiltered();
+            state.filtered = filtered;
+            document.getElementById('recordPillTxt').textContent = filtered.length.toLocaleString() + ' of ' + state.data
+                .length.toLocaleString() + ' rows in view';
+            syncTimelineUI(true);
+
+            renderKPIs(filtered);
+            renderTrendChart(filtered);
+            renderL1Chart(filtered);
+            renderL3Chart(filtered);
+            renderAgentChart(filtered);
+            renderHeatmap(filtered);
+            renderInsights(filtered);
+            renderPareto(filtered);
+            renderScorecard(filtered);
+            renderEvaluatorTable(filtered);
+            renderCrosstabs(filtered);
+        }
+
+        // ---- KPIs ----
+        const KPI_DEFS = [
+            { key: 'totalCases', label: 'Total Contacts', accent: 'info', fmt: v => Math.round(v).toLocaleString() },
+            { key: 'totalDsats', label: 'Total DSATs', accent: 'signal', fmt: v => Math.round(v).toLocaleString() },
+            { key: 'dissatRate', label: 'Dissat Rate', accent: 'signal', fmt: v => v.toFixed(1) + '%' },
+            { key: 'recontactRate', label: 'Recontact Rate', accent: 'amber', fmt: v => v.toFixed(1) + '%' },
+            { key: 'rcAccuracy', label: 'RC Tagging Accuracy', accent: 'good', fmt: v => v.toFixed(1) + '%' }
+        ];
+
+        function computeKpis(rows) {
+            const totalCases = rows.length;
+            const totalDsats = rows.reduce((s, r) => s + r.numDsats, 0);
+            const dissatRows = rows.filter(r => r.numDsats > 0 || r.dissatTrigger);
+            const dissatRate = pct(dissatRows.length, totalCases);
+            const recontactRows = rows.filter(r => r.isRecontact === true);
+            const recontactRate = pct(recontactRows.length, totalCases);
+            const evaluated = rows.filter(r => r.correctRcTagging !== null);
+            const correct = evaluated.filter(r => r.correctRcTagging === true);
+            const rcAccuracy = pct(correct.length, evaluated.length);
+            return { totalCases, totalDsats, dissatRate, recontactRate, rcAccuracy };
+        }
+
+        function prevPeriodRows() {
+            if (!state.rangeStart || !state.rangeEnd) return [];
+            const span = state.rangeEnd - state.rangeStart;
+            const prevStart = new Date(state.rangeStart.getTime() - span);
+            const prevEnd = new Date(state.rangeStart.getTime() - 1);
+            return baseFiltered(null).filter(r => r.submitTime && r.submitTime >= prevStart && r.submitTime <= prevEnd);
+        }
+
+        function renderKPIs(rows) {
+            const cur = computeKpis(rows);
+            const prev = computeKpis(prevPeriodRows());
+            const strip = document.getElementById('kpiStrip');
+            strip.innerHTML = '';
+            KPI_DEFS.forEach(def => {
+                const val = cur[def.key];
+                const pval = prev[def.key];
+                let deltaTxt = '—',
+                    deltaCls = 'flat';
+                if (pval > 0 || val > 0) {
+                    const diff = val - pval;
+                    const isRateOrBad = ['dissatRate', 'recontactRate', 'totalDsats'].includes(def.key);
+                    deltaCls = diff === 0 ? 'flat' : (isRateOrBad ? (diff > 0 ? 'up' : 'down') : (diff > 0 ?
+                        'down' : 'up'));
+                    const sign = diff > 0 ? '+' : '';
+                    deltaTxt = sign + (Math.abs(diff) < 10 && def.key !== 'totalCases' && def.key !==
+                        'totalDsats' ? diff.toFixed(1) : Math.round(diff)) + (def.fmt(1).includes('%') ?
+                        'pt' : '') + ' vs prior period';
+                }
+                const series = dailySeries(rows, dayRows => {
+                    switch (def.key) {
+                        case 'totalCases':
+                            return dayRows.length;
+                        case 'totalDsats':
+                            return dayRows.reduce((s, r) => s + r.numDsats, 0);
+                        case 'dissatRate':
+                            return pct(dayRows.filter(r => r.numDsats > 0 || r.dissatTrigger).length, dayRows
+                                .length);
+                        case 'recontactRate':
+                            return pct(dayRows.filter(r => r.isRecontact === true).length, dayRows.length);
+                        case 'rcAccuracy': {
+                            const ev = dayRows.filter(r => r.correctRcTagging !== null);
+                            return pct(ev.filter(r => r.correctRcTagging === true).length, ev.length);
+                        }
+                    }
+                });
+                const path = sparkPath(series, 96, 34);
+                const color = { info: '#5B9CFF', signal: '#FF6B4A', amber: '#FFC24B', good: '#35D0A6' }[def
+                .accent];
+                const card = document.createElement('div');
+                card.className = 'kpi-card accent-' + def.accent;
+                card.innerHTML =
+                    '<div class="klabel"><span>' + def.label + '</span></div>' +
+                    '<div class="kval">' + def.fmt(val) + '</div>' +
+                    '<div class="kdelta ' + deltaCls + '">' + (deltaCls === 'up' ? '\u25B2' : deltaCls ===
+                        'down' ? '\u25BC' : '\u2013') + ' ' + deltaTxt + '</div>' +
+                    '<svg class="spark" width="96" height="34" viewBox="0 0 96 34"><path d="' + path +
+                    '" fill="none" stroke="' + color + '" stroke-width="1.6" opacity="0.85"/></svg>';
+                strip.appendChild(card);
+            });
+        }
+
+        // ---- trend chart ----
+        function renderTrendChart(rows) {
+            const byDay = new Map();
+            rows.forEach(r => { if (!r.dateStr) return; if (!byDay.has(r.dateStr)) byDay.set(r.dateStr, { cases: 0,
+                        dsats: 0 }); const o = byDay.get(r.dateStr);
+                o.cases++;
+                o.dsats += r.numDsats; });
+            let days = [...byDay.keys()].sort();
+            document.getElementById('trendSub').textContent = days.length + ' day' + (days.length === 1 ? '' : 's') +
+                ' in range';
+            let labels, casesData, dsatsData;
+            if (days.length > 60) {
+                const wk = new Map();
+                days.forEach(d => {
+                    const dt = new Date(d);
+                    const onejan = new Date(dt.getFullYear(), 0, 1);
+                    const week = dt.getFullYear() + '-W' + Math.ceil((((dt - onejan) / 86400000) + onejan
+                        .getDay() + 1) / 7);
+                    if (!wk.has(week)) wk.set(week, { cases: 0, dsats: 0 });
+                    const o = wk.get(week),
+                        src = byDay.get(d);
+                    o.cases += src.cases;
+                    o.dsats += src.dsats;
+                });
+                labels = [...wk.keys()];
+                casesData = labels.map(k => wk.get(k).cases);
+                dsatsData = labels.map(k => wk.get(k).dsats);
+            } else {
+                labels = days.map(d => fmtDateShort(new Date(d)));
+                casesData = days.map(d => byDay.get(d).cases);
+                dsatsData = days.map(d => byDay.get(d).dsats);
+            }
+            upsertChart('trendChart', 'line', {
+                labels,
+                datasets: [
+                    { label: 'Cases', data: casesData, borderColor: '#5B9CFF', backgroundColor: 'rgba(91,156,255,.12)',
+                        fill: true, tension: .35, pointRadius: 0, borderWidth: 2 },
+                    { label: 'DSATs', data: dsatsData, borderColor: '#FF6B4A', backgroundColor: 'rgba(255,107,74,.12)',
+                        fill: true, tension: .35, pointRadius: 0, borderWidth: 2 }
+                ]
+            }, baseOpts({ stacked: false }));
+        }
+
+        // ---- L1 chart ----
+        function renderL1Chart(rows) {
+            const g = groupBy(rows, 'l1Reason');
+            let arr = [...g.entries()].map(([k, list]) => {
+                const dsats = list.reduce((s, r) => s + r.numDsats, 0);
+                return { k, n: list.length, dsats, rate: pct(dsats, list.length) };
+            }).sort((a, b) => b.n - a.n).slice(0, 10);
+            const maxRate = Math.max(1, ...arr.map(a => a.rate));
+            upsertChart('l1Chart', 'bar', {
+                labels: arr.map(a => a.k),
+                datasets: [{ label: 'Cases', data: arr.map(a => a.n), backgroundColor: arr.map(a => lerpColor(
+                        '35D0A6', 'FF6B4A', a.rate / Math.max(maxRate, 40))), borderRadius: 4 }]
+            }, baseOpts({ indexAxis: 'y' }), (evt, elements) => {
+                if (!elements.length) return;
+                const idx = elements[0].index;
+                const l1 = arr[idx].k;
+                state.drillL1 = state.drillL1 === l1 ? null : l1;
+                render();
+            });
+            updateDrillChip();
+        }
+
+        function updateDrillChip() {
+            const chip = document.getElementById('l1DrillChip');
+            chip.innerHTML = state.drillL1 ? ('<span class="chip">' + escapeHtml(state.drillL1) +
+                ' <button onclick="window.__clearDrill()">\u2715</button></span>') : '';
+        }
+        window.__clearDrill = function() { state.drillL1 = null;
+            render(); };
+
+        // ---- L3 chart ----
+        function renderL3Chart(rows) {
+            const g = groupBy(rows, 'l3Reason');
+            let arr = [...g.entries()].map(([k, list]) => ({ k, n: list.length, dsats: list.reduce((s, r) => s + r
+                    .numDsats, 0) }))
+                .sort((a, b) => b.n - a.n).slice(0, 10);
+            upsertChart('l3Chart', 'bar', {
+                labels: arr.map(a => a.k),
+                datasets: [{ label: 'Cases', data: arr.map(a => a.n), backgroundColor: '#5B9CFF', borderRadius: 4 }]
+            }, baseOpts({ indexAxis: 'y' }));
+        }
+
+        // ---- agent leaderboard ----
+        document.getElementById('agentWorstBtn').addEventListener('click', () => { state.agentSort = 'worst';
+            toggleAgentBtns();
+            renderAgentChart(state.filtered); });
+        document.getElementById('agentBestBtn').addEventListener('click', () => { state.agentSort = 'best';
+            toggleAgentBtns();
+            renderAgentChart(state.filtered); });
+
+        function toggleAgentBtns() {
+            document.getElementById('agentWorstBtn').classList.toggle('on', state.agentSort === 'worst');
+            document.getElementById('agentBestBtn').classList.toggle('on', state.agentSort === 'best');
+        }
+
+        function renderAgentChart(rows) {
+            const g = groupBy(rows, 'agentName');
+            let arr = [...g.entries()].map(([k, list]) => {
+                const dsats = list.reduce((s, r) => s + r.numDsats, 0);
+                return { k, n: list.length, rate: pct(dsats, list.length) };
+            }).filter(a => a.n >= 5);
+            arr.sort((a, b) => state.agentSort === 'worst' ? b.rate - a.rate : a.rate - b.rate).splice(12);
+            upsertChart('agentChart', 'bar', {
+                labels: arr.map(a => a.k),
+                datasets: [{ label: 'Dissat rate %', data: arr.map(a => +a.rate.toFixed(1)), backgroundColor: state
+                        .agentSort === 'worst' ? '#FF6B4A' : '#35D0A6', borderRadius: 4 }]
+            }, baseOpts({ indexAxis: 'y' }));
+        }
+
+        // ---- heatmap ----
+        document.getElementById('hmVolumeBtn').addEventListener('click', () => { state.hmMode = 'volume';
+            toggleHmBtns();
+            renderHeatmap(state.filtered); });
+        document.getElementById('hmDissatBtn').addEventListener('click', () => { state.hmMode = 'dissat';
+            toggleHmBtns();
+            renderHeatmap(state.filtered); });
+
+        function toggleHmBtns() {
+            document.getElementById('hmVolumeBtn').classList.toggle('on', state.hmMode === 'volume');
+            document.getElementById('hmDissatBtn').classList.toggle('on', state.hmMode === 'dissat');
+        }
+
+        function renderHeatmap(rows) {
+            const tenures = [...new Set(rows.map(r => r.tenureBucket))].sort();
+            const hours = [...Array(24).keys()];
+            const matrix = {};
+            tenures.forEach(t => matrix[t] = hours.map(() => ({ n: 0, dsats: 0 })));
+            rows.forEach(r => {
+                if (r.hr === null || r.hr === undefined) return;
+                const cell = matrix[r.tenureBucket][r.hr];
+                cell.n++;
+                cell.dsats += r.numDsats;
+            });
+            let maxVal = 1;
+            tenures.forEach(t => matrix[t].forEach(c => {
+                const v = state.hmMode === 'volume' ? c.n : pct(c.dsats, c.n);
+                if (v > maxVal) maxVal = v;
+            }));
+            let html =
+                '<table class="hm-table"><thead><tr><th></th>' + hours.map(h => '<th>' + h + '</th>').join('') +
+                '</tr></thead><tbody>';
+            tenures.forEach(t => {
+                html += '<tr><td class="hm-row-label">' + escapeHtml(t) + '</td>';
+                matrix[t].forEach(c => {
+                    const v = state.hmMode === 'volume' ? c.n : pct(c.dsats, c.n);
+                    const t01 = v / maxVal;
+                    const color = v === 0 ? '#141f36' : lerpColor('16213A', 'FF6B4A', t01);
+                    const label = c.n === 0 ? '' : (state.hmMode === 'volume' ? c.n : Math.round(v));
+                    html += '<td><div class="hm-cell" style="background:' + color + '" title="' + escapeHtml(
+                        t) + ' · ' + c.n + ' hrs  cases, ' + c.dsats + ' dsats">' + label + '</div></td>';
+                });
+                html += '</tr>';
+            });
+            html += '</tbody></table>';
+            if (!tenures.length) html = '<div class="footnote">No rows in current filter to map.</div>';
+            document.getElementById('heatmapGrid').innerHTML = html;
+        }
+
+        // ---- insights ----
+        function renderInsights(rows) {
+            const list = document.getElementById('insightsList');
+            const items = [];
+            if (rows.length < 15) {
+                items.push({ ico: 'i', c: 'i', html: 'Not enough rows in the current filter (<b>' + rows.length +
+                        '</b>) to generate reliable insights. Widen the timeline or clear slicers.' });
+            } else {
+                const byL1 = groupBy(rows, 'l1Reason');
+                const l1arr = [...byL1.entries()].map(([k, l]) => ({ k, dsats: l.reduce((s, r) => s + r.numDsats, 0),
+                    n: l.length })).sort((a, b) => b.dsats - a.dsats);
+                const totalDsats = rows.reduce((s, r) => s + r.numDsats, 0);
+                if (l1arr.length && totalDsats > 0) {
+                    const top = l1arr[0];
+                    items.push({ ico: 'r', c: 'r', html: '<b>' + escapeHtml(top.k) +
+                            '</b> is the leading dissat driver, accounting for <b>' + pct(top.dsats, totalDsats)
+                            .toFixed(0) + '%</b> of DSATs (' + top.dsats + ' of ' + totalDsats + ') across ' + top
+                            .n + ' cases.' });
+                }
+                const byAgent = groupBy(rows, 'agentName');
+                const agentArr = [...byAgent.entries()].map(([k, l]) => ({ k, rate: pct(l.reduce((s, r) => s + r
+                        .numDsats, 0), l.length), n: l.length })).filter(a => a.n >= 5);
+                if (agentArr.length) {
+                    const teamAvg = agentArr.reduce((s, a) => s + a.rate, 0) / agentArr.length;
+                    const worst = agentArr.sort((a, b) => b.rate - a.rate)[0];
+                    if (worst.rate > teamAvg * 1.4) {
+                        items.push({ ico: 'r', c: 'r', html: '<b>' + escapeHtml(worst.k) +
+                                '</b> runs a <b>' + worst.rate.toFixed(0) + '%</b> dissat rate vs. a team average of <b>' +
+                                teamAvg.toFixed(0) + '%</b> — a likely coaching candidate (' + worst.n +
+                                ' cases).' });
+                    }
+                    const best = [...agentArr].sort((a, b) => a.rate - b.rate)[0];
+                    items.push({ ico: 'g', c: 'g', html: '<b>' + escapeHtml(best.k) +
+                            '</b> holds the lowest dissat rate in view at <b>' + best.rate.toFixed(0) +
+                            '%</b> over ' + best.n + ' cases — worth reviewing for best-practice sharing.' });
+                }
+                const withIssue = rows.filter(r => r.deliveryIssue === true);
+                const withoutIssue = rows.filter(r => r.deliveryIssue === false);
+                if (withIssue.length >= 5 && withoutIssue.length >= 5) {
+                    const rIssue = pct(withIssue.filter(r => r.isRecontact === true).length, withIssue.length);
+                    const rNo = pct(withoutIssue.filter(r => r.isRecontact === true).length, withoutIssue.length);
+                    if (rIssue - rNo > 5) {
+                        items.push({ ico: 'a', c: 'a', html: 'Cases flagged with a delivery issue recontact at <b>' +
+                                rIssue.toFixed(0) + '%</b> vs <b>' + rNo.toFixed(0) +
+                                '%</b> for issue-free cases — delivery breakdowns are a strong recontact driver.' });
+                    }
+                }
+                const byHr = new Map();
+                rows.forEach(r => { if (r.hr === null) return; if (!byHr.has(r.hr)) byHr.set(r.hr, { n: 0, d: 0 });
+                    const o = byHr.get(r.hr);
+                    o.n++;
+                    o.d += r.numDsats; });
+                let worstHr = null,
+                    worstRate = -1;
+                byHr.forEach((o, hr) => { if (o.n >= 5) { const rt = pct(o.d, o.n); if (rt > worstRate) { worstRate =
+                            rt;
+                        worstHr = hr; } } });
+                if (worstHr !== null) {
+                    items.push({ ico: 'i', c: 'i', html: 'The <b>' + worstHr + ':00\u2013' + ((worstHr + 1) % 24) +
+                            ':00</b> hour band shows the highest dissat concentration at <b>' + worstRate.toFixed(
+                            0) + '%</b> — check staffing/coverage for that slot.' });
+                }
+                const byEval = groupBy(rows.filter(r => r.correctRcTagging !== null), 'evaluator');
+                const evalArr = [...byEval.entries()].map(([k, l]) => ({ k, acc: pct(l.filter(r => r
+                        .correctRcTagging === true).length, l.length), n: l.length })).filter(a => a.n >= 5);
+                if (evalArr.length > 1) {
+                    const avgAcc = evalArr.reduce((s, a) => s + a.acc, 0) / evalArr.length;
+                    const low = evalArr.sort((a, b) => a.acc - b.acc)[0];
+                    if (avgAcc - low.acc > 10) {
+                        items.push({ ico: 'a', c: 'a', html: 'Evaluator <b>' + escapeHtml(low.k) +
+                                '</b> tags RC accuracy at <b>' + low.acc.toFixed(0) +
+                                '%</b>, over 10pts below the panel average of <b>' + avgAcc.toFixed(0) +
+                                '%</b> — consider a calibration session.' });
+                    }
+                }
+            }
+            list.innerHTML = items.map(it => '<li><span class="ico ' + it.c + '">' + ({ r: '!', g: '\u2713', a: '\u25B2',
+                i: 'i' })[it.c] + '</span><span>' + it.html + '</span></li>').join('') ||
+                '<li>No notable signals in the current slice.</li>';
+        }
+
+        // ---- pareto table ----
+        function renderPareto(rows) {
+            const g = groupBy(rows, 'l3Reason');
+            const totalDsats = rows.reduce((s, r) => s + r.numDsats, 0);
+            let arr = [...g.entries()].map(([k, l]) => ({ l3: k, cases: l.length, dsats: l.reduce((s, r) => s + r
+                    .numDsats, 0) }));
+            arr.forEach(a => a.share = pct(a.dsats, totalDsats));
+            sortRows(arr, state.sortState.pareto);
+            const byDsatsDesc = [...arr].sort((x, y) => y.dsats - x.dsats);
+            let running = 0;
+            const cumMap = new Map();
+            byDsatsDesc.forEach(a => { running += a.share;
+                cumMap.set(a.l3, running); });
+            const tbody = document.querySelector('#paretoTable tbody');
+            tbody.innerHTML = arr.map(a => {
+                const c = cumMap.get(a.l3);
+                return '<tr><td style="font-family:var(--font-body);white-space:normal;max-width:220px;">' +
+                    escapeHtml(a.l3) + '</td>' +
+                    '<td>' + a.cases + '</td><td>' + a.dsats + '</td><td>' + a.share.toFixed(1) + '%</td>' +
+                    '<td>' + c.toFixed(0) + '% ' + (c <= 80 ? '<span class="badge-vital">vital few</span>' :
+                        '') + '</td></tr>';
+            }).join('') || '<tr><td colspan="5" style="color:var(--muted);">No data in range.</td></tr>';
+            attachSort('paretoTable', 'pareto', arr, () => renderPareto(rows));
+        }
+
+        // ---- agent scorecard ----
+        document.getElementById('agentSearch').addEventListener('input', () => renderScorecard(state.filtered));
+
+        function renderScorecard(rows) {
+            const q = document.getElementById('agentSearch').value.trim().toLowerCase();
+            const g = groupBy(rows, 'agentName');
+            let arr = [...g.entries()].map(([k, l]) => {
+                const dsats = l.reduce((s, r) => s + r.numDsats, 0);
+                const recontacts = l.filter(r => r.isRecontact === true).length;
+                const evaluated = l.filter(r => r.correctRcTagging !== null);
+                const correct = evaluated.filter(r => r.correctRcTagging === true).length;
+                const coach = l[0] ? l[0].coach : '';
+                return { agent: k, coach, cases: l.length, dsats, dissat: pct(dsats, l.length), recontact: pct(
+                        recontacts, l.length), rc: pct(correct, evaluated.length || 1) };
+            });
+            if (q) arr = arr.filter(a => a.agent.toLowerCase().includes(q));
+            sortRows(arr, state.sortState.score);
+            const maxDissat = Math.max(1, ...arr.map(a => a.dissat));
+            const tbody = document.querySelector('#scoreTable tbody');
+            tbody.innerHTML = arr.map(a => {
+                const barColor = lerpColor('35D0A6', 'FF6B4A', a.dissat / maxDissat);
+                return '<tr><td style="font-family:var(--font-body);">' + escapeHtml(a.agent) +
+                    '</td><td style="font-family:var(--font-body);">' + escapeHtml(a.coach) + '</td>' +
+                    '<td>' + a.cases + '</td><td>' + a.dsats + '</td>' +
+                    '<td><span class="cellbar" style="width:' + Math.max(4, (a.dissat / maxDissat * 36)) +
+                    'px;background:' + barColor + '"></span>' + a.dissat.toFixed(1) + '%</td>' +
+                    '<td>' + a.recontact.toFixed(1) + '%</td><td>' + a.rc.toFixed(1) + '%</td></tr>';
+            }).join('') || '<tr><td colspan="7" style="color:var(--muted);">No agents match.</td></tr>';
+            attachSort('scoreTable', 'score', arr, () => renderScorecard(rows));
+        }
+
+        // ---- evaluator table ----
+        function renderEvaluatorTable(rows) {
+            const g = groupBy(rows.filter(r => r.correctRcTagging !== null), 'evaluator');
+            let arr = [...g.entries()].map(([k, l]) => {
+                const correct = l.filter(r => r.correctRcTagging === true).length;
+                const dsats = l.reduce((s, r) => s + r.numDsats, 0);
+                return { ev: k, n: l.length, acc: pct(correct, l.length), dsats: l.length ? dsats / l.length : 0 };
+            });
+            const teamAvg = arr.length ? arr.reduce((s, a) => s + a.acc, 0) / arr.length : 0;
+            arr.forEach(a => a.flag = (teamAvg - a.acc) > 10 && a.n >= 5);
+            sortRows(arr, state.sortState.evalT);
+            const tbody = document.querySelector('#evalTable tbody');
+            tbody.innerHTML = arr.map(a => '<tr><td style="font-family:var(--font-body);">' + escapeHtml(a.ev) +
+                    '</td><td>' + a.n + '</td><td>' + a.acc.toFixed(1) + '%</td><td>' + a.dsats.toFixed(2) +
+                    '</td>' +
+                    '<td>' + (a.flag ? '<span class="badge-flag">calibrate</span>' : '—') + '</td></tr>').join(
+                '') ||
+                '<tr><td colspan="5" style="color:var(--muted);">No evaluated rows in range.</td></tr>';
+            attachSort('evalTable', 'evalT', arr, () => renderEvaluatorTable(rows));
+        }
+
+        // ---- crosstabs ----
+        function renderCrosstabs(rows) {
+            const wrap = document.getElementById('crosstabPair');
+
+            function crosstab(field, label) {
+                const cats = [...new Set(rows.map(r => r[field]))];
+                let html = '<div><h4 style="font-size:12px;margin:0 0 8px;color:var(--muted);font-weight:600;">Recontact rate by ' +
+                    label + '</h4><table class="datatable"><thead><tr><th>' + label +
+                    '</th><th>Cases</th><th>Recontact%</th></tr></thead><tbody>';
+                const arr = cats.map(cat => {
+                    const l = rows.filter(r => r[field] === cat);
+                    const rc = l.filter(r => r.isRecontact === true).length;
+                    return { cat, n: l.length, rate: pct(rc, l.length) };
+                }).sort((a, b) => b.rate - a.rate);
+                const maxRate = Math.max(1, ...arr.map(a => a.rate));
+                html += arr.map(a => '<tr><td style="font-family:var(--font-body);">' + escapeHtml(String(a.cat)) +
+                        '</td><td>' + a.n + '</td>' +
+                        '<td><span class="cellbar" style="width:' + Math.max(4, a.rate / maxRate * 36) +
+                        'px;background:' + lerpColor('35D0A6', 'FFC24B', a.rate / maxRate) + '"></span>' + a
+                        .rate.toFixed(1) + '%</td></tr>').join('');
+                html += '</tbody></table></div>';
+                return html;
+            }
+            wrap.innerHTML = crosstab('eddStatus', 'EDD Status') + crosstab('gdtStatus', 'GDT Status');
+        }
+
+        // ---- sorting helpers ----
+        function sortRows(arr, s) {
+            arr.sort((a, b) => {
+                const av = a[s.k],
+                    bv = b[s.k];
+                let cmp;
+                if (typeof av === 'string') cmp = av.localeCompare(bv);
+                else cmp = av - bv;
+                return s.dir === 'asc' ? cmp : -cmp;
+            });
+        }
+
+        function attachSort(tableId, stateKey, arr, rerender) {
+            const table = document.getElementById(tableId);
+            table.querySelectorAll('th').forEach(th => {
+                th.classList.toggle('sorted', th.dataset.k === state.sortState[stateKey].k);
+                th.classList.toggle('asc', th.dataset.k === state.sortState[stateKey].k && state
+                    .sortState[stateKey].dir === 'asc');
+                th.onclick = () => {
+                    const s = state.sortState[stateKey];
+                    if (s.k === th.dataset.k) s.dir = s.dir === 'asc' ? 'desc' : 'asc';
+                    else { s.k = th.dataset.k;
+                        s.dir = 'desc'; }
+                    rerender();
+                };
+            });
+        }
+
+        // --------------------------------------------------------------
+        // 14. CHART.JS HELPERS
+        // --------------------------------------------------------------
+        function baseOpts(extra) {
+            return Object.assign({
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { labels: { boxWidth: 10, boxHeight: 10, usePointStyle: true } },
+                    tooltip: { backgroundColor: '#0e1728', borderColor: '#223252', borderWidth: 1,
+                        titleColor: '#E8EDF6', bodyColor: '#c9d3e6', padding: 10, cornerRadius: 6 }
+                },
+                scales: {
+                    x: { grid: { color: '#1a2740' }, ticks: { color: '#8593AC' } },
+                    y: { grid: { color: '#1a2740' }, ticks: { color: '#8593AC' }, beginAtZero: true }
+                }
+            }, extra || {});
+        }
+
+        // --------------------------------------------------------------
+        // 15. CSV EXPORT
+        // --------------------------------------------------------------
+        function exportCSV() {
+            const rows = state.filtered.length ? state.filtered : getFiltered();
+            const keys = Object.keys(CANON_LABEL);
+            const header = keys.map(k => CANON_LABEL[k]);
+            const lines = [header.join(',')];
+            rows.forEach(r => {
+                const line = keys.map(k => {
+                    let v = r[k];
+                    if (v instanceof Date) v = fmtDate(v);
+                    if (v === true) v = 'Yes';
+                    if (v === false) v = 'No';
+                    if (v === null || v === undefined) v = '';
+                    v = String(v).replace(/"/g, '""');
+                    return /[,"\n]/.test(v) ? '"' + v + '"' : v;
+                });
+                lines.push(line.join(','));
+            });
+            const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'qa_dissat_filtered_export.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        // --------------------------------------------------------------
+        // 16. CHART LOAD MONITOR
+        // --------------------------------------------------------------
+        document.addEventListener('chartLoadFailed', function() {
+            document.querySelectorAll('canvas').forEach(c => {
+                showChartFallback(c.id,
+                    'Chart.js failed to load. Please refresh with an active internet connection.');
+            });
+        });
+
+        if (typeof Chart !== 'undefined') {
+            state.chartReady = true;
+        } else {
+            let pollCount = 0;
+            const pollInterval = setInterval(function() {
+                if (typeof Chart !== 'undefined') {
+                    state.chartReady = true;
+                    clearInterval(pollInterval);
+                    if (state.data.length) render();
+                }
+                pollCount++;
+                if (pollCount > 20) {
+                    clearInterval(pollInterval);
+                    document.querySelectorAll('canvas').forEach(c => {
+                        showChartFallback(c.id,
+                            'Chart.js did not load. Please check your internet connection and refresh the page.'
+                            );
+                    });
+                }
+            }, 500);
+        }
+
+        if (typeof Chart !== 'undefined') {
+            window.renderCharts = render;
+        }
+
+        // --------------------------------------------------------------
+        // 17. AUTH GATE: sign-in required before ANY Firestore read/write
+        // --------------------------------------------------------------
+        // Data is only loaded once Firebase confirms a signed-in user. This
+        // is a UX gate, not the real security boundary — the actual
+        // enforcement lives in Firestore Security Rules (see firestore.rules),
+        // which reject reads/writes from anyone who isn't authenticated,
+        // regardless of what this page does.
+        const authGateEl = document.getElementById('authGate');
+        const appWrapEl = document.getElementById('appWrap');
+        const loginForm = document.getElementById('loginForm');
+        const loginEmail = document.getElementById('loginEmail');
+        const loginPassword = document.getElementById('loginPassword');
+        const loginBtn = document.getElementById('loginBtn');
+        const loginError = document.getElementById('loginError');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const userPill = document.getElementById('userPill');
+        const userPillTxt = document.getElementById('userPillTxt');
+
+        let dataBooted = false;
+
+        // --------------------------------------------------------------
+        // 17b. INACTIVITY AUTO-LOGOUT
+        // --------------------------------------------------------------
+        // Signs the user out after a period with no mouse/keyboard/touch/
+        // scroll activity, so an unattended, signed-in tab doesn't stay
+        // open indefinitely.
+        const INACTIVITY_LIMIT_MS = 5 * 60 * 1000; // 5 minutes
+        const ACTIVITY_EVENTS = ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart', 'click'];
+        let inactivityTimer = null;
+        let inactivityLogout = false;
+
+        function resetInactivityTimer() {
+            clearTimeout(inactivityTimer);
+            inactivityTimer = setTimeout(() => {
+                inactivityLogout = true;
+                signOut(auth);
+            }, INACTIVITY_LIMIT_MS);
+        }
+
+        function startInactivityWatch() {
+            resetInactivityTimer();
+            ACTIVITY_EVENTS.forEach(ev => document.addEventListener(ev, resetInactivityTimer, { passive: true }));
+        }
+
+        function stopInactivityWatch() {
+            clearTimeout(inactivityTimer);
+            ACTIVITY_EVENTS.forEach(ev => document.removeEventListener(ev, resetInactivityTimer));
+        }
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            loginError.textContent = '';
+            loginBtn.disabled = true;
+            loginBtn.textContent = 'Signing in…';
+            try {
+                await signInWithEmailAndPassword(auth, loginEmail.value.trim(), loginPassword.value);
+                loginPassword.value = '';
+            } catch (err) {
+                loginError.textContent = 'Sign-in failed. Check your email and password.';
+            } finally {
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'Sign in';
+            }
+        });
+
+        logoutBtn.addEventListener('click', () => {
+            signOut(auth);
+        });
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                authGateEl.style.display = 'none';
+                appWrapEl.style.display = '';
+                userPill.style.display = '';
+                userPillTxt.textContent = user.email || 'Signed in';
+                startInactivityWatch();
+
+                if (!dataBooted) {
+                    dataBooted = true;
+                    // First load available weeks for the dropdown, then auto-load all data.
+                    loadAvailableWeeks().then(() => {
+                        loadAllData();
+                    }).catch(() => {
+                        // If week loading fails, still try to auto-load data
+                        loadAllData();
+                    });
+                }
+            } else {
+                appWrapEl.style.display = 'none';
+                userPill.style.display = 'none';
+                authGateEl.style.display = 'flex';
+                stopInactivityWatch();
+                if (inactivityLogout) {
+                    loginError.textContent = 'Signed out after 5 minutes of inactivity. Please sign in again.';
+                    inactivityLogout = false;
+                }
+            }
+        });
+
+        console.log('🔍 Data is read as JSON-like objects from the Excel file using XLSX.utils.sheet_to_json().');
+        console.log('📊 Each row becomes a JavaScript object with column headers as keys.');
+        console.log('🔥 Click "Save to Firebase" to store the raw data (with original headers) in Firestore.');
+        console.log('📁 Collection name: "' + state.firebaseCollection + '" in database "shopeemydb2026".');
+        console.log('📈 Auto-loads ALL data from Firestore once you sign in. Use the week dropdown to filter by week.');
+
+        // Expose for debugging
+        window.__state = state;
+        window.__render = render;
+        window.__db = db;
+        window.__auth = auth;
+    </script>
+</body>
+</html>
