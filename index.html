@@ -986,6 +986,170 @@
             }
         }
 
+        /* ===== MOBILE / SMALL SCREENS ===== */
+        html, body {
+            overflow-x: hidden;
+        }
+        @media (max-width:720px) {
+            .wrap {
+                padding: 14px 14px 44px;
+            }
+            header.top {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 14px;
+            }
+            .top-actions {
+                justify-content: flex-start;
+            }
+            .brand h1 {
+                font-size: 17px;
+            }
+            #uploadStage {
+                padding: 36px 18px;
+            }
+            #uploadStage h2 {
+                font-size: 19px;
+            }
+            #fetchSection {
+                padding: 14px 16px;
+                gap: 12px;
+            }
+            #fetchSection .status {
+                margin-left: 0;
+                width: 100%;
+            }
+            #fetchSection select {
+                min-width: 0;
+                flex: 1;
+            }
+            .searchbox {
+                min-width: 0;
+                width: 100%;
+            }
+            .rail-top {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .kpi-strip {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+            .kpi-card {
+                padding: 12px 12px 10px;
+            }
+            .kpi-card .kval {
+                font-size: 21px;
+            }
+            .kpi-card svg.spark {
+                display: none;
+            }
+            .section-head {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 3px;
+                margin: 20px 0 10px;
+            }
+            .panel {
+                padding: 14px 14px;
+            }
+            .panel-head {
+                align-items: flex-start;
+            }
+            canvas {
+                max-height: 200px !important;
+            }
+            table.datatable {
+                font-size: 11px;
+            }
+
+            /* Responsive tables: stack each row into a label/value card
+               instead of forcing horizontal scroll. Since every data table
+               in the dashboard (Pareto, Agent scorecard, Evaluator tagging,
+               the recontact crosstabs, and any future table) shares the
+               .datatable class, this one rule set makes all of them
+               responsive consistently. */
+            .table-scroll {
+                max-height: none;
+                overflow: visible;
+            }
+            table.datatable thead {
+                display: none;
+            }
+            table.datatable,
+            table.datatable tbody,
+            table.datatable tr,
+            table.datatable td {
+                display: block;
+                width: 100%;
+            }
+            table.datatable tr {
+                margin-bottom: 8px;
+                padding: 6px 10px;
+                border: 1px solid var(--line);
+                border-radius: 8px;
+                background: var(--panel2);
+            }
+            table.datatable tr:last-child {
+                margin-bottom: 0;
+            }
+            table.datatable td {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 10px;
+                padding: 6px 2px;
+                border-bottom: 1px solid #1a2740;
+                white-space: normal;
+                text-align: right;
+                max-width: none;
+            }
+            table.datatable td:last-child {
+                border-bottom: none;
+            }
+            table.datatable td[data-label]::before {
+                content: attr(data-label);
+                flex: none;
+                color: var(--muted);
+                font-family: var(--font-body);
+                font-size: 10px;
+                font-weight: 500;
+                text-transform: uppercase;
+                letter-spacing: .4px;
+                text-align: left;
+            }
+            table.datatable td[colspan] {
+                display: block;
+                text-align: left;
+            }
+            .panel-head input[type="text"] {
+                flex: 1 1 100%;
+            }
+            #saveStatus {
+                left: 14px;
+                right: 14px;
+                bottom: 16px;
+                max-width: none;
+            }
+        }
+        @media (max-width:420px) {
+            .kpi-strip {
+                grid-template-columns: 1fr;
+            }
+            .brand .mark {
+                width: 36px;
+                height: 36px;
+                font-size: 15px;
+            }
+            .brand h1 {
+                font-size: 15.5px;
+            }
+            .top-actions .btn {
+                font-size: 12px;
+                padding: 7px 10px;
+            }
+        }
+
         /* ===== AUTH GATE ===== */
         #authGate {
             min-height: 100vh;
@@ -1025,6 +1189,11 @@
         #loginBtn[disabled] {
             opacity: .6;
             cursor: default;
+        }
+        @media (max-width:420px) {
+            #loginForm {
+                padding: 20px 18px;
+            }
         }
     </style>
 </head>
@@ -2125,8 +2294,7 @@
 
         function groupBy(rows, key) {
             const m = new Map();
-            rows.forEach(r => { const k = r[key]; if (!m.has(k)) m.set(k, []);
-                m.get(k).push(r); });
+            rows.forEach(r => { const k = r[key]; if (!m.has(k)) m.set(k, []); m.get(k).push(r); });
             return m;
         }
 
@@ -2178,8 +2346,7 @@
             if (existing) existing.remove();
             const div = document.createElement('div');
             div.className = 'chart-placeholder';
-            div.textContent = message ||
-                'Chart library not loaded. Please check your internet connection and refresh.';
+            div.textContent = message || 'Chart library not loaded. Please check your internet connection and refresh.';
             parent.appendChild(div);
             canvas.style.display = 'none';
         }
@@ -2221,6 +2388,9 @@
         // --------------------------------------------------------------
         // 13. MAIN RENDER
         // --------------------------------------------------------------
+        // Helper to detect mobile screen width
+        const isMobile = () => window.matchMedia('(max-width: 720px)').matches;
+
         function render() {
             const filtered = getFiltered();
             state.filtered = filtered;
@@ -2574,6 +2744,10 @@
                     .numDsats, 0) }));
             arr.forEach(a => a.share = pct(a.dsats, totalDsats));
             sortRows(arr, state.sortState.pareto);
+            // Mobile: keep only top 5
+            if (isMobile()) {
+                arr = arr.slice(0, 5);
+            }
             const byDsatsDesc = [...arr].sort((x, y) => y.dsats - x.dsats);
             let running = 0;
             const cumMap = new Map();
@@ -2582,10 +2756,10 @@
             const tbody = document.querySelector('#paretoTable tbody');
             tbody.innerHTML = arr.map(a => {
                 const c = cumMap.get(a.l3);
-                return '<tr><td style="font-family:var(--font-body);white-space:normal;max-width:220px;">' +
+                return '<tr><td data-label="L3 Reason" style="font-family:var(--font-body);white-space:normal;max-width:220px;">' +
                     escapeHtml(a.l3) + '</td>' +
-                    '<td>' + a.cases + '</td><td>' + a.dsats + '</td><td>' + a.share.toFixed(1) + '%</td>' +
-                    '<td>' + c.toFixed(0) + '% ' + (c <= 80 ? '<span class="badge-vital">vital few</span>' :
+                    '<td data-label="Cases">' + a.cases + '</td><td data-label="DSATs">' + a.dsats + '</td><td data-label="Share">' + a.share.toFixed(1) + '%</td>' +
+                    '<td data-label="Cum.%">' + c.toFixed(0) + '% ' + (c <= 80 ? '<span class="badge-vital">vital few</span>' :
                         '') + '</td></tr>';
             }).join('') || '<tr><td colspan="5" style="color:var(--muted);">No data in range.</td></tr>';
             attachSort('paretoTable', 'pareto', arr, () => renderPareto(rows));
@@ -2608,16 +2782,20 @@
             });
             if (q) arr = arr.filter(a => a.agent.toLowerCase().includes(q));
             sortRows(arr, state.sortState.score);
+            // Mobile: keep only top 5
+            if (isMobile()) {
+                arr = arr.slice(0, 5);
+            }
             const maxDissat = Math.max(1, ...arr.map(a => a.dissat));
             const tbody = document.querySelector('#scoreTable tbody');
             tbody.innerHTML = arr.map(a => {
                 const barColor = lerpColor('35D0A6', 'FF6B4A', a.dissat / maxDissat);
-                return '<tr><td style="font-family:var(--font-body);">' + escapeHtml(a.agent) +
-                    '</td><td style="font-family:var(--font-body);">' + escapeHtml(a.coach) + '</td>' +
-                    '<td>' + a.cases + '</td><td>' + a.dsats + '</td>' +
-                    '<td><span class="cellbar" style="width:' + Math.max(4, (a.dissat / maxDissat * 36)) +
+                return '<tr><td data-label="Agent" style="font-family:var(--font-body);">' + escapeHtml(a.agent) +
+                    '</td><td data-label="Coach" style="font-family:var(--font-body);">' + escapeHtml(a.coach) + '</td>' +
+                    '<td data-label="Cases">' + a.cases + '</td><td data-label="DSATs">' + a.dsats + '</td>' +
+                    '<td data-label="Dissat%"><span class="cellbar" style="width:' + Math.max(4, (a.dissat / maxDissat * 36)) +
                     'px;background:' + barColor + '"></span>' + a.dissat.toFixed(1) + '%</td>' +
-                    '<td>' + a.recontact.toFixed(1) + '%</td><td>' + a.rc.toFixed(1) + '%</td></tr>';
+                    '<td data-label="Recontact%">' + a.recontact.toFixed(1) + '%</td><td data-label="RC Acc.%">' + a.rc.toFixed(1) + '%</td></tr>';
             }).join('') || '<tr><td colspan="7" style="color:var(--muted);">No agents match.</td></tr>';
             attachSort('scoreTable', 'score', arr, () => renderScorecard(rows));
         }
@@ -2633,11 +2811,15 @@
             const teamAvg = arr.length ? arr.reduce((s, a) => s + a.acc, 0) / arr.length : 0;
             arr.forEach(a => a.flag = (teamAvg - a.acc) > 10 && a.n >= 5);
             sortRows(arr, state.sortState.evalT);
+            // Mobile: keep only top 5
+            if (isMobile()) {
+                arr = arr.slice(0, 5);
+            }
             const tbody = document.querySelector('#evalTable tbody');
-            tbody.innerHTML = arr.map(a => '<tr><td style="font-family:var(--font-body);">' + escapeHtml(a.ev) +
-                    '</td><td>' + a.n + '</td><td>' + a.acc.toFixed(1) + '%</td><td>' + a.dsats.toFixed(2) +
+            tbody.innerHTML = arr.map(a => '<tr><td data-label="Evaluator" style="font-family:var(--font-body);">' + escapeHtml(a.ev) +
+                    '</td><td data-label="Cases QA\'d">' + a.n + '</td><td data-label="RC Accuracy%">' + a.acc.toFixed(1) + '%</td><td data-label="Avg DSATs">' + a.dsats.toFixed(2) +
                     '</td>' +
-                    '<td>' + (a.flag ? '<span class="badge-flag">calibrate</span>' : '—') + '</td></tr>').join(
+                    '<td data-label="Flag">' + (a.flag ? '<span class="badge-flag">calibrate</span>' : '—') + '</td></tr>').join(
                 '') ||
                 '<tr><td colspan="5" style="color:var(--muted);">No evaluated rows in range.</td></tr>';
             attachSort('evalTable', 'evalT', arr, () => renderEvaluatorTable(rows));
@@ -2658,9 +2840,9 @@
                     return { cat, n: l.length, rate: pct(rc, l.length) };
                 }).sort((a, b) => b.rate - a.rate);
                 const maxRate = Math.max(1, ...arr.map(a => a.rate));
-                html += arr.map(a => '<tr><td style="font-family:var(--font-body);">' + escapeHtml(String(a.cat)) +
-                        '</td><td>' + a.n + '</td>' +
-                        '<td><span class="cellbar" style="width:' + Math.max(4, a.rate / maxRate * 36) +
+                html += arr.map(a => '<tr><td data-label="' + escapeHtml(label) + '" style="font-family:var(--font-body);">' + escapeHtml(String(a.cat)) +
+                        '</td><td data-label="Cases">' + a.n + '</td>' +
+                        '<td data-label="Recontact%"><span class="cellbar" style="width:' + Math.max(4, a.rate / maxRate * 36) +
                         'px;background:' + lerpColor('35D0A6', 'FFC24B', a.rate / maxRate) + '"></span>' + a
                         .rate.toFixed(1) + '%</td></tr>').join('');
                 html += '</tbody></table></div>';
