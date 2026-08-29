@@ -1222,7 +1222,7 @@
             <div class="grid2">
                 <div class="panel">
                     <div class="panel-head">
-                        <h3>Cases vs. DSATs over time</h3>
+                        <h3>Surveys vs. DSAT</h3>
                         <span class="sub" id="trendSub"></span>
                     </div>
                     <canvas id="trendChart" height="230"></canvas>
@@ -1253,16 +1253,16 @@
                         </div>
                     </div>
                     <canvas id="agentChart" height="230"></canvas>
-                    <div class="footnote">Min. 5 cases in range to qualify for ranking.</div>
+                    <div class="footnote">Min. 5 cases in range to qualify for ranking. Hover a bar for the agent's AHT on DSAT cases.</div>
                 </div>
             </div>
 
             <div class="section-head">
-                <div><h2><span class="num">02</span> Hour × Tenure Signal Map</h2><p>Where in the day — and with which tenure cohort — issues concentrate.</p></div>
+                <div><h2><span class="num">02</span> DSAT Hour Signal</h2><p>Which hour of day DSATs are received, based on CSAT submission time.</p></div>
             </div>
             <div class="panel" id="heatmapPanel">
                 <div class="panel-head">
-                    <h3>Contact hour vs. tenure bucket</h3>
+                    <h3>DSATs by hour of day</h3>
                     <div class="toggles">
                         <button id="hmVolumeBtn" class="on">Volume</button>
                         <button id="hmDissatBtn">Dissat rate</button>
@@ -1273,7 +1273,7 @@
 
             <!-- Section: deep analysis -->
             <div class="section-head">
-                <div><h2><span class="num">03</span> Deep Analysis</h2><p>Auto-generated read on the filtered slice — root cause, agent scorecards, recontact correlation and tagging consistency.</p></div>
+                <div><h2><span class="num">03</span> Deep Analysis</h2><p>Auto-generated read on the filtered slice — root cause, agent scorecards and recontact patterns.</p></div>
             </div>
 
             <div class="grid2">
@@ -1304,27 +1304,22 @@
                     <div class="table-scroll">
                         <table class="datatable" id="scoreTable">
                             <thead><tr>
-                                    <th data-k="agent">Agent</th><th data-k="coach">Coach</th><th data-k="cases">Cases</th>
-                                    <th data-k="dsats">DSATs</th><th data-k="dissat">Dissat%</th><th data-k="recontact">Recontact%</th><th data-k="rc">RC Acc.%</th>
+                                    <th data-k="agent">Agent</th><th data-k="cases">Cases</th>
+                                    <th data-k="dsats">DSATs</th><th data-k="dissat">DSAT%</th>
                                 </tr></thead>
                             <tbody></tbody>
                         </table>
                     </div>
                 </div>
                 <div class="panel">
-                    <div class="panel-head"><h3>Evaluator tagging consistency</h3><span class="sub">flags &gt;10pt below team avg.</span></div>
+                    <div class="panel-head"><h3>Recontact breakdown</h3><span class="sub">basis: username</span></div>
                     <div class="table-scroll">
-                        <table class="datatable" id="evalTable">
-                            <thead><tr><th data-k="ev">Evaluator</th><th data-k="n">Cases QA'd</th><th data-k="acc">RC Accuracy%</th><th data-k="dsats">Avg DSATs</th><th data-k="flag">Flag</th></tr></thead>
+                        <table class="datatable" id="recontactTable">
+                            <thead><tr><th data-k="user">Username</th><th data-k="recontact">Recontact</th><th data-k="dsatRate">DSAT Rate</th></tr></thead>
                             <tbody></tbody>
                         </table>
                     </div>
                 </div>
-            </div>
-
-            <div class="panel" style="margin-top:14px;">
-                <div class="panel-head"><h3>Recontact correlation</h3><span class="sub">where recontacts cluster</span></div>
-                <div class="crosstab-pair" id="crosstabPair"></div>
             </div>
 
         </div> <!-- /dashboard -->
@@ -1388,6 +1383,7 @@
         // 2. STATE
         // --------------------------------------------------------------
         const state = {
+            schema: 'dsats', // 'dsats' (total.xlsx) or 'week34' (Week 34 Surveys.xlsx)
             data: [], // normalized rows (for dashboard)
             rawRows: [], // raw rows with original headers (for Firebase)
             filtered: [],
@@ -1401,8 +1397,8 @@
             rangeEnd: null,
             agentSort: 'worst',
             hmMode: 'volume',
-            sortState: { pareto: { k: 'dsats', dir: 'desc' }, score: { k: 'dsats', dir: 'desc' }, evalT: { k: 'acc',
-                    dir: 'asc' } },
+            sortState: { pareto: { k: 'dsats', dir: 'desc' }, score: { k: 'dsats', dir: 'desc' }, recontact: {
+                    k: 'recontact', dir: 'desc' } },
             charts: {},
             chartReady: false,
             isSaving: false,
@@ -1463,13 +1459,20 @@
         // --------------------------------------------------------------
         const HEADER_RULES = [
             [/^week$/i, 'week'],
+            [/csat\s*submission/i, 'submitTime'],
             [/submit\s*time/i, 'submitTime'],
             [/agent\s*email/i, 'agentEmail'],
+            [/^email$/i, 'agentEmail'],
             [/agent\s*name/i, 'agentName'],
             [/agent\s*type/i, 'agentType'],
+            [/agent\s*skill/i, 'agentType'],
             [/case\s*id/i, 'caseId'],
             [/session\s*id/i, 'sessionId'],
             [/csat\s*channel/i, 'csatChannel'],
+            [/survey\s*channel/i, 'csatChannel'],
+            [/csat\s*level/i, 'csatLevel'],
+            [/^username$/i, 'username'],
+            [/handle\s*time/i, 'handleTime'],
             [/l1.*reason/i, 'l1Reason'],
             [/l3.*reason/i, 'l3Reason'],
             [/^hr$/i, 'hr'],
@@ -1523,7 +1526,10 @@
             numRecontact: 'No. of Recontact',
             numDsats: 'No. of DSATs',
             otherRemarks: 'Other remarks',
-            evaluator: 'EVALUATOR'
+            evaluator: 'EVALUATOR',
+            csatLevel: 'CSAT Level',
+            username: 'Username',
+            handleTime: 'Handle Time'
         };
 
         function canonicalKeyFor(header) {
@@ -1541,7 +1547,18 @@
                 const d = XLSX.SSF ? XLSX.SSF.parse_date_code(v) : null;
                 if (d) return new Date(Date.UTC(d.y, d.m - 1, d.d, d.H || 0, d.M || 0, Math.floor(d.S || 0)));
             }
-            const d2 = new Date(v);
+            let s = String(v).trim();
+            // Normalize odd unicode spaces (narrow no-break space etc.) some exports use.
+            s = s.replace(/[\u00A0\u202F\u2009\u2007]/g, ' ').replace(/\s+/g, ' ').trim();
+            // Some Submit Time exports look like "12:47:49 AM / Friday, May 1, 2026" —
+            // JS can't parse that order directly, so flip it to "<date> <time>".
+            const slashMatch = s.match(/^(.*?)\s*\/\s*(.*)$/);
+            if (slashMatch) {
+                const combined = slashMatch[2].trim() + ' ' + slashMatch[1].trim();
+                const d3 = new Date(combined);
+                if (!isNaN(d3)) return d3;
+            }
+            const d2 = new Date(s);
             return isNaN(d2) ? null : d2;
         }
 
@@ -1628,9 +1645,46 @@
                     numRecontact: parseFloat(row.numRecontact) || 0,
                     numDsats: parseFloat(row.numDsats) || 0,
                     otherRemarks: (row.otherRemarks || '').toString(),
-                    evaluator: (row.evaluator || 'Unassigned').toString().trim() || 'Unassigned'
+                    evaluator: (row.evaluator || 'Unassigned').toString().trim() || 'Unassigned',
+                    csatLevel: (row.csatLevel || '').toString().trim(),
+                    username: (row.username || '').toString().trim(),
+                    handleTime: (row.handleTime !== undefined && row.handleTime !== '' && !isNaN(parseFloat(
+                        row.handleTime))) ? parseFloat(row.handleTime) : null,
+                    contactUsername: ((row.username || row.usn || '')).toString().trim()
                 };
             });
+        }
+
+        // Detects which of the two supported export formats a set of raw
+        // rows came from. 'week34' = per-survey export with a CSAT Level
+        // column (Good/Bad) and a Username column, covering ALL surveys.
+        // 'dsats' = the original per-DSAT-case export (total.xlsx).
+        function detectSchema(rawRows) {
+            const headers = rawRows.length ? Object.keys(rawRows[0]) : [];
+            const has = re => headers.some(h => re.test(String(h).trim()));
+            if (has(/csat\s*level/i) && has(/^username$/i)) return 'week34';
+            return 'dsats';
+        }
+
+        // A row counts as a DSAT differently depending on the source format:
+        // - week34: one row per survey: it's a DSAT when CSAT Level is 'Bad'.
+        // - dsats: every row is a logged DSAT case; use the numDsats/dissatTrigger
+        //   fields already present in that export.
+        function isDsatRow(r) {
+            return state.schema === 'week34' ? r.csatLevel.toLowerCase() === 'bad' : (r.numDsats > 0 || !!r
+                .dissatTrigger);
+        }
+
+        function dsatVal(r) {
+            return state.schema === 'week34' ? (r.csatLevel.toLowerCase() === 'bad' ? 1 : 0) : r.numDsats;
+        }
+
+        function fmtHandleTime(secs) {
+            if (secs === null || secs === undefined || isNaN(secs)) return '—';
+            const s = Math.round(secs);
+            const m = Math.floor(s / 60);
+            const r = s % 60;
+            return m + ':' + (r < 10 ? '0' + r : r);
         }
 
         // --------------------------------------------------------------
@@ -1785,6 +1839,7 @@
         // --------------------------------------------------------------
         function bootFromRawRows(rawRows) {
             state.rawRows = rawRows;
+            state.schema = detectSchema(rawRows);
             const normalized = normalizeRows(rawRows);
             state.data = normalized;
             state.lastUploadedRows = normalized.length;
@@ -1925,7 +1980,17 @@
         // --------------------------------------------------------------
         function initFilters() {
             SLICER_FIELDS.forEach(f => state.filterValues[f.key] = new Set());
-            state.periodFilter = { mode: 'day', day: new Set(), week: new Set(), month: new Set() };
+            state.periodFilter = { mode: 'week', day: new Set(), week: new Set(), month: new Set() };
+            // Default to the most recent week only — the user can still
+            // multi-select additional weeks from the Week slicer panel.
+            let latestWeek = null,
+                latestSort = -Infinity;
+            state.data.forEach(r => {
+                if (r.week === null || r.week === undefined || r.week === '') return;
+                if (r.weekSortKey > latestSort) { latestSort = r.weekSortKey;
+                    latestWeek = r.week; }
+            });
+            if (latestWeek !== null) state.periodFilter.week.add(latestWeek);
             const grid = document.getElementById('slicerGrid');
             grid.innerHTML = '';
 
@@ -2375,30 +2440,35 @@
             renderInsights(filtered);
             renderPareto(filtered);
             renderScorecard(filtered);
-            renderEvaluatorTable(filtered);
-            renderCrosstabs(filtered);
+            renderRecontactBreakdown(filtered);
         }
 
         // ---- KPIs ----
         const KPI_DEFS = [
             { key: 'totalCases', label: 'Total Contacts', accent: 'info', fmt: v => Math.round(v).toLocaleString() },
             { key: 'totalDsats', label: 'Total DSATs', accent: 'signal', fmt: v => Math.round(v).toLocaleString() },
-            { key: 'dissatRate', label: 'Dissat Rate', accent: 'signal', fmt: v => v.toFixed(1) + '%' },
-            { key: 'recontactRate', label: 'Recontact Rate', accent: 'amber', fmt: v => v.toFixed(1) + '%' },
-            { key: 'rcAccuracy', label: 'RC Tagging Accuracy', accent: 'good', fmt: v => v.toFixed(1) + '%' }
+            { key: 'dissatRate', label: 'DSAT Rate', accent: 'signal', fmt: v => v.toFixed(1) + '%' },
+            { key: 'recontactRate', label: 'Recontact Rate', accent: 'amber', fmt: v => v.toFixed(1) + '%' }
         ];
+
+        // Groups rows by contactUsername and returns the number of "repeat"
+        // contacts — i.e. every contact beyond a username's first one in
+        // the given row set. Basis: username (Username col for week34,
+        // USN of the user for the dsats export).
+        function recontactEventCount(rows) {
+            const byUser = groupBy(rows.filter(r => r.contactUsername), 'contactUsername');
+            let events = 0;
+            byUser.forEach(list => { if (list.length > 1) events += (list.length - 1); });
+            return events;
+        }
 
         function computeKpis(rows) {
             const totalCases = rows.length;
-            const totalDsats = rows.reduce((s, r) => s + r.numDsats, 0);
-            const dissatRows = rows.filter(r => r.numDsats > 0 || r.dissatTrigger);
+            const totalDsats = rows.reduce((s, r) => s + dsatVal(r), 0);
+            const dissatRows = rows.filter(isDsatRow);
             const dissatRate = pct(dissatRows.length, totalCases);
-            const recontactRows = rows.filter(r => r.isRecontact === true);
-            const recontactRate = pct(recontactRows.length, totalCases);
-            const evaluated = rows.filter(r => r.correctRcTagging !== null);
-            const correct = evaluated.filter(r => r.correctRcTagging === true);
-            const rcAccuracy = pct(correct.length, evaluated.length);
-            return { totalCases, totalDsats, dissatRate, recontactRate, rcAccuracy };
+            const recontactRate = pct(recontactEventCount(rows), totalCases);
+            return { totalCases, totalDsats, dissatRate, recontactRate };
         }
 
         function prevPeriodRows() {
@@ -2434,16 +2504,11 @@
                         case 'totalCases':
                             return dayRows.length;
                         case 'totalDsats':
-                            return dayRows.reduce((s, r) => s + r.numDsats, 0);
+                            return dayRows.reduce((s, r) => s + dsatVal(r), 0);
                         case 'dissatRate':
-                            return pct(dayRows.filter(r => r.numDsats > 0 || r.dissatTrigger).length, dayRows
-                                .length);
+                            return pct(dayRows.filter(isDsatRow).length, dayRows.length);
                         case 'recontactRate':
-                            return pct(dayRows.filter(r => r.isRecontact === true).length, dayRows.length);
-                        case 'rcAccuracy': {
-                            const ev = dayRows.filter(r => r.correctRcTagging !== null);
-                            return pct(ev.filter(r => r.correctRcTagging === true).length, ev.length);
-                        }
+                            return pct(recontactEventCount(dayRows), dayRows.length);
                     }
                 });
                 const path = sparkPath(series, 96, 34);
@@ -2468,7 +2533,7 @@
             rows.forEach(r => { if (!r.dateStr) return; if (!byDay.has(r.dateStr)) byDay.set(r.dateStr, { cases: 0,
                         dsats: 0 }); const o = byDay.get(r.dateStr);
                 o.cases++;
-                o.dsats += r.numDsats; });
+                o.dsats += dsatVal(r); });
             let days = [...byDay.keys()].sort();
             document.getElementById('trendSub').textContent = days.length + ' day' + (days.length === 1 ? '' : 's') +
                 ' in range';
@@ -2497,7 +2562,7 @@
             upsertChart('trendChart', 'line', {
                 labels,
                 datasets: [
-                    { label: 'Cases', data: casesData, borderColor: '#5B9CFF', backgroundColor: 'rgba(91,156,255,.12)',
+                    { label: 'Surveys', data: casesData, borderColor: '#5B9CFF', backgroundColor: 'rgba(91,156,255,.12)',
                         fill: true, tension: .35, pointRadius: 0, borderWidth: 2 },
                     { label: 'DSATs', data: dsatsData, borderColor: '#FF6B4A', backgroundColor: 'rgba(255,107,74,.12)',
                         fill: true, tension: .35, pointRadius: 0, borderWidth: 2 }
@@ -2509,7 +2574,7 @@
         function renderL1Chart(rows) {
             const g = groupBy(rows, 'l1Reason');
             let arr = [...g.entries()].map(([k, list]) => {
-                const dsats = list.reduce((s, r) => s + r.numDsats, 0);
+                const dsats = list.reduce((s, r) => s + dsatVal(r), 0);
                 return { k, n: list.length, dsats, rate: pct(dsats, list.length) };
             }).sort((a, b) => b.n - a.n).slice(0, 10);
             const maxRate = Math.max(1, ...arr.map(a => a.rate));
@@ -2538,8 +2603,8 @@
         // ---- L3 chart ----
         function renderL3Chart(rows) {
             const g = groupBy(rows, 'l3Reason');
-            let arr = [...g.entries()].map(([k, list]) => ({ k, n: list.length, dsats: list.reduce((s, r) => s + r
-                    .numDsats, 0) }))
+            let arr = [...g.entries()].map(([k, list]) => ({ k, n: list.length, dsats: list.reduce((s, r) => s +
+                    dsatVal(r), 0) }))
                 .sort((a, b) => b.n - a.n).slice(0, 10);
             upsertChart('l3Chart', 'bar', {
                 labels: arr.map(a => a.k),
@@ -2563,15 +2628,27 @@
         function renderAgentChart(rows) {
             const g = groupBy(rows, 'agentName');
             let arr = [...g.entries()].map(([k, list]) => {
-                const dsats = list.reduce((s, r) => s + r.numDsats, 0);
-                return { k, n: list.length, rate: pct(dsats, list.length) };
+                const dsats = list.reduce((s, r) => s + dsatVal(r), 0);
+                const dsatRows = list.filter(isDsatRow).filter(r => r.handleTime !== null);
+                const aht = dsatRows.length ? dsatRows.reduce((s, r) => s + r.handleTime, 0) / dsatRows.length :
+                    null;
+                return { k, n: list.length, rate: pct(dsats, list.length), aht };
             }).filter(a => a.n >= 5);
             arr.sort((a, b) => state.agentSort === 'worst' ? b.rate - a.rate : a.rate - b.rate).splice(12);
             upsertChart('agentChart', 'bar', {
                 labels: arr.map(a => a.k),
                 datasets: [{ label: 'Dissat rate %', data: arr.map(a => +a.rate.toFixed(1)), backgroundColor: state
                         .agentSort === 'worst' ? '#FF6B4A' : '#35D0A6', borderRadius: 4 }]
-            }, baseOpts({ indexAxis: 'y' }));
+            }, baseOpts({
+                indexAxis: 'y',
+                plugins: {
+                    legend: { labels: { boxWidth: 10, boxHeight: 10, usePointStyle: true } },
+                    tooltip: { backgroundColor: '#0e1728', borderColor: '#223252', borderWidth: 1,
+                        titleColor: '#E8EDF6', bodyColor: '#c9d3e6', padding: 10, cornerRadius: 6,
+                        callbacks: { afterLabel: ctx => 'AHT (DSATs): ' + fmtHandleTime(arr[ctx.dataIndex]
+                                .aht) } }
+                }
+            }));
         }
 
         // ---- heatmap ----
@@ -2587,39 +2664,39 @@
             document.getElementById('hmDissatBtn').classList.toggle('on', state.hmMode === 'dissat');
         }
 
+        // DSAT hour heatmap — a single row across the 24 hours of the day.
+        // Basis for the hour is the row's submit/CSAT-submission timestamp
+        // (r.hr), and DSAT volume/rate use the schema-aware dsat helpers.
         function renderHeatmap(rows) {
-            const tenures = [...new Set(rows.map(r => r.tenureBucket))].sort();
             const hours = [...Array(24).keys()];
-            const matrix = {};
-            tenures.forEach(t => matrix[t] = hours.map(() => ({ n: 0, dsats: 0 })));
+            const cells = hours.map(() => ({ n: 0, dsats: 0 }));
             rows.forEach(r => {
                 if (r.hr === null || r.hr === undefined) return;
-                const cell = matrix[r.tenureBucket][r.hr];
+                const cell = cells[r.hr];
                 cell.n++;
-                cell.dsats += r.numDsats;
+                cell.dsats += dsatVal(r);
             });
             let maxVal = 1;
-            tenures.forEach(t => matrix[t].forEach(c => {
-                const v = state.hmMode === 'volume' ? c.n : pct(c.dsats, c.n);
+            cells.forEach(c => {
+                const v = state.hmMode === 'volume' ? c.dsats : pct(c.dsats, c.n);
                 if (v > maxVal) maxVal = v;
-            }));
+            });
+            const hasData = cells.some(c => c.n > 0);
             let html =
                 '<table class="hm-table"><thead><tr><th></th>' + hours.map(h => '<th>' + h + '</th>').join('') +
                 '</tr></thead><tbody>';
-            tenures.forEach(t => {
-                html += '<tr><td class="hm-row-label">' + escapeHtml(t) + '</td>';
-                matrix[t].forEach(c => {
-                    const v = state.hmMode === 'volume' ? c.n : pct(c.dsats, c.n);
-                    const t01 = v / maxVal;
-                    const color = v === 0 ? '#141f36' : lerpColor('16213A', 'FF6B4A', t01);
-                    const label = c.n === 0 ? '' : (state.hmMode === 'volume' ? c.n : Math.round(v));
-                    html += '<td><div class="hm-cell" style="background:' + color + '" title="' + escapeHtml(
-                        t) + ' · ' + c.n + ' hrs  cases, ' + c.dsats + ' dsats">' + label + '</div></td>';
-                });
-                html += '</tr>';
+            html += '<tr><td class="hm-row-label">DSATs</td>';
+            cells.forEach((c, h) => {
+                const v = state.hmMode === 'volume' ? c.dsats : pct(c.dsats, c.n);
+                const t01 = v / maxVal;
+                const color = v === 0 ? '#141f36' : lerpColor('16213A', 'FF6B4A', t01);
+                const label = c.dsats === 0 ? '' : (state.hmMode === 'volume' ? Math.round(c.dsats) : Math.round(
+                    v));
+                html += '<td><div class="hm-cell" style="background:' + color + '" title="' + h + ':00 · ' + c
+                    .n + ' contacts, ' + c.dsats + ' dsats">' + label + '</div></td>';
             });
-            html += '</tbody></table>';
-            if (!tenures.length) html = '<div class="footnote">No rows in current filter to map.</div>';
+            html += '</tr></tbody></table>';
+            if (!hasData) html = '<div class="footnote">No rows in current filter to map.</div>';
             document.getElementById('heatmapGrid').innerHTML = html;
         }
 
@@ -2632,9 +2709,10 @@
                         '</b>) to generate reliable insights. Widen the timeline or clear slicers.' });
             } else {
                 const byL1 = groupBy(rows, 'l1Reason');
-                const l1arr = [...byL1.entries()].map(([k, l]) => ({ k, dsats: l.reduce((s, r) => s + r.numDsats, 0),
+                const l1arr = [...byL1.entries()].map(([k, l]) => ({ k, dsats: l.reduce((s, r) => s + dsatVal(r),
+                        0),
                     n: l.length })).sort((a, b) => b.dsats - a.dsats);
-                const totalDsats = rows.reduce((s, r) => s + r.numDsats, 0);
+                const totalDsats = rows.reduce((s, r) => s + dsatVal(r), 0);
                 if (l1arr.length && totalDsats > 0) {
                     const top = l1arr[0];
                     items.push({ ico: 'r', c: 'r', html: '<b>' + escapeHtml(top.k) +
@@ -2643,8 +2721,8 @@
                             .n + ' cases.' });
                 }
                 const byAgent = groupBy(rows, 'agentName');
-                const agentArr = [...byAgent.entries()].map(([k, l]) => ({ k, rate: pct(l.reduce((s, r) => s + r
-                        .numDsats, 0), l.length), n: l.length })).filter(a => a.n >= 5);
+                const agentArr = [...byAgent.entries()].map(([k, l]) => ({ k, rate: pct(l.reduce((s, r) => s +
+                        dsatVal(r), 0), l.length), n: l.length })).filter(a => a.n >= 5);
                 if (agentArr.length) {
                     const teamAvg = agentArr.reduce((s, a) => s + a.rate, 0) / agentArr.length;
                     const worst = agentArr.sort((a, b) => b.rate - a.rate)[0];
@@ -2674,7 +2752,7 @@
                 rows.forEach(r => { if (r.hr === null) return; if (!byHr.has(r.hr)) byHr.set(r.hr, { n: 0, d: 0 });
                     const o = byHr.get(r.hr);
                     o.n++;
-                    o.d += r.numDsats; });
+                    o.d += dsatVal(r); });
                 let worstHr = null,
                     worstRate = -1;
                 byHr.forEach((o, hr) => { if (o.n >= 5) { const rt = pct(o.d, o.n); if (rt > worstRate) { worstRate =
@@ -2707,9 +2785,9 @@
         // ---- pareto table ----
         function renderPareto(rows) {
             const g = groupBy(rows, 'l3Reason');
-            const totalDsats = rows.reduce((s, r) => s + r.numDsats, 0);
-            let arr = [...g.entries()].map(([k, l]) => ({ l3: k, cases: l.length, dsats: l.reduce((s, r) => s + r
-                    .numDsats, 0) }));
+            const totalDsats = rows.reduce((s, r) => s + dsatVal(r), 0);
+            let arr = [...g.entries()].map(([k, l]) => ({ l3: k, cases: l.length, dsats: l.reduce((s, r) => s +
+                    dsatVal(r), 0) }));
             arr.forEach(a => a.share = pct(a.dsats, totalDsats));
             sortRows(arr, state.sortState.pareto);
             const byDsatsDesc = [...arr].sort((x, y) => y.dsats - x.dsats);
@@ -2736,13 +2814,8 @@
             const q = document.getElementById('agentSearch').value.trim().toLowerCase();
             const g = groupBy(rows, 'agentName');
             let arr = [...g.entries()].map(([k, l]) => {
-                const dsats = l.reduce((s, r) => s + r.numDsats, 0);
-                const recontacts = l.filter(r => r.isRecontact === true).length;
-                const evaluated = l.filter(r => r.correctRcTagging !== null);
-                const correct = evaluated.filter(r => r.correctRcTagging === true).length;
-                const coach = l[0] ? l[0].coach : '';
-                return { agent: k, coach, cases: l.length, dsats, dissat: pct(dsats, l.length), recontact: pct(
-                        recontacts, l.length), rc: pct(correct, evaluated.length || 1) };
+                const dsats = l.reduce((s, r) => s + dsatVal(r), 0);
+                return { agent: k, cases: l.length, dsats, dissat: pct(dsats, l.length) };
             });
             if (q) arr = arr.filter(a => a.agent.toLowerCase().includes(q));
             sortRows(arr, state.sortState.score);
@@ -2751,60 +2824,37 @@
             tbody.innerHTML = arr.map(a => {
                 const barColor = lerpColor('35D0A6', 'FF6B4A', a.dissat / maxDissat);
                 return '<tr><td data-label="Agent" style="font-family:var(--font-body);">' + escapeHtml(a.agent) +
-                    '</td><td data-label="Coach" style="font-family:var(--font-body);">' + escapeHtml(a.coach) + '</td>' +
+                    '</td>' +
                     '<td data-label="Cases">' + a.cases + '</td><td data-label="DSATs">' + a.dsats + '</td>' +
-                    '<td data-label="Dissat%"><span class="cellbar" style="width:' + Math.max(4, (a.dissat / maxDissat * 36)) +
-                    'px;background:' + barColor + '"></span>' + a.dissat.toFixed(1) + '%</td>' +
-                    '<td data-label="Recontact%">' + a.recontact.toFixed(1) + '%</td><td data-label="RC Acc.%">' + a.rc.toFixed(1) + '%</td></tr>';
-            }).join('') || '<tr><td colspan="7" style="color:var(--muted);">No agents match.</td></tr>';
+                    '<td data-label="DSAT%"><span class="cellbar" style="width:' + Math.max(4, (a.dissat / maxDissat * 36)) +
+                    'px;background:' + barColor + '"></span>' + a.dissat.toFixed(1) + '%</td></tr>';
+            }).join('') || '<tr><td colspan="4" style="color:var(--muted);">No agents match.</td></tr>';
             attachSort('scoreTable', 'score', arr, () => renderScorecard(rows));
         }
 
-        // ---- evaluator table ----
-        function renderEvaluatorTable(rows) {
-            const g = groupBy(rows.filter(r => r.correctRcTagging !== null), 'evaluator');
+        // ---- recontact breakdown ----
+        // Groups all rows (in the current filter) by contactUsername
+        // (Username for week34, USN of the user for the dsats export).
+        // "Recontact" = repeat contacts beyond that user's first one;
+        // only users with at least one recontact are listed.
+        function renderRecontactBreakdown(rows) {
+            const g = groupBy(rows.filter(r => r.contactUsername), 'contactUsername');
             let arr = [...g.entries()].map(([k, l]) => {
-                const correct = l.filter(r => r.correctRcTagging === true).length;
-                const dsats = l.reduce((s, r) => s + r.numDsats, 0);
-                return { ev: k, n: l.length, acc: pct(correct, l.length), dsats: l.length ? dsats / l.length : 0 };
-            });
-            const teamAvg = arr.length ? arr.reduce((s, a) => s + a.acc, 0) / arr.length : 0;
-            arr.forEach(a => a.flag = (teamAvg - a.acc) > 10 && a.n >= 5);
-            sortRows(arr, state.sortState.evalT);
-            const tbody = document.querySelector('#evalTable tbody');
-            tbody.innerHTML = arr.map(a => '<tr><td data-label="Evaluator" style="font-family:var(--font-body);">' + escapeHtml(a.ev) +
-                    '</td><td data-label="Cases QA\'d">' + a.n + '</td><td data-label="RC Accuracy%">' + a.acc.toFixed(1) + '%</td><td data-label="Avg DSATs">' + a.dsats.toFixed(2) +
-                    '</td>' +
-                    '<td data-label="Flag">' + (a.flag ? '<span class="badge-flag">calibrate</span>' : '—') + '</td></tr>').join(
-                '') ||
-                '<tr><td colspan="5" style="color:var(--muted);">No evaluated rows in range.</td></tr>';
-            attachSort('evalTable', 'evalT', arr, () => renderEvaluatorTable(rows));
-        }
-
-        // ---- crosstabs ----
-        function renderCrosstabs(rows) {
-            const wrap = document.getElementById('crosstabPair');
-
-            function crosstab(field, label) {
-                const cats = [...new Set(rows.map(r => r[field]))];
-                let html = '<div><h4 style="font-size:12px;margin:0 0 8px;color:var(--muted);font-weight:600;">Recontact rate by ' +
-                    label + '</h4><table class="datatable"><thead><tr><th>' + label +
-                    '</th><th>Cases</th><th>Recontact%</th></tr></thead><tbody>';
-                const arr = cats.map(cat => {
-                    const l = rows.filter(r => r[field] === cat);
-                    const rc = l.filter(r => r.isRecontact === true).length;
-                    return { cat, n: l.length, rate: pct(rc, l.length) };
-                }).sort((a, b) => b.rate - a.rate);
-                const maxRate = Math.max(1, ...arr.map(a => a.rate));
-                html += arr.map(a => '<tr><td data-label="' + escapeHtml(label) + '" style="font-family:var(--font-body);">' + escapeHtml(String(a.cat)) +
-                        '</td><td data-label="Cases">' + a.n + '</td>' +
-                        '<td data-label="Recontact%"><span class="cellbar" style="width:' + Math.max(4, a.rate / maxRate * 36) +
-                        'px;background:' + lerpColor('35D0A6', 'FFC24B', a.rate / maxRate) + '"></span>' + a
-                        .rate.toFixed(1) + '%</td></tr>').join('');
-                html += '</tbody></table></div>';
-                return html;
-            }
-            wrap.innerHTML = crosstab('eddStatus', 'EDD Status') + crosstab('gdtStatus', 'GDT Status');
+                const dsats = l.filter(isDsatRow).length;
+                return { user: k, recontact: l.length - 1, dsatRate: pct(dsats, l.length) };
+            }).filter(a => a.recontact >= 1);
+            sortRows(arr, state.sortState.recontact);
+            const maxRecontact = Math.max(1, ...arr.map(a => a.recontact));
+            const tbody = document.querySelector('#recontactTable tbody');
+            tbody.innerHTML = arr.map(a => {
+                const barColor = lerpColor('5B9CFF', 'FFC24B', a.recontact / maxRecontact);
+                return '<tr><td data-label="Username" style="font-family:var(--font-body);">' + escapeHtml(a
+                        .user) + '</td>' +
+                    '<td data-label="Recontact"><span class="cellbar" style="width:' + Math.max(4, (a.recontact /
+                        maxRecontact * 36)) + 'px;background:' + barColor + '"></span>' + a.recontact +
+                    '</td><td data-label="DSAT Rate">' + a.dsatRate.toFixed(1) + '%</td></tr>';
+            }).join('') || '<tr><td colspan="3" style="color:var(--muted);">No recontacts in range.</td></tr>';
+            attachSort('recontactTable', 'recontact', arr, () => renderRecontactBreakdown(rows));
         }
 
         // ---- sorting helpers ----
@@ -2947,7 +2997,7 @@
         // Signs the user out after a period with no mouse/keyboard/touch/
         // scroll activity, so an unattended, signed-in tab doesn't stay
         // open indefinitely.
-        const INACTIVITY_LIMIT_MS = 3 * 60 * 1000; // 5 minutes
+        const INACTIVITY_LIMIT_MS = 5 * 60 * 1000; // 5 minutes
         const ACTIVITY_EVENTS = ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart', 'click'];
         let inactivityTimer = null;
         let inactivityLogout = false;
