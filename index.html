@@ -1124,6 +1124,76 @@
                 padding: 20px 18px;
             }
         }
+        /* ===== Local backup / offline-fallback UI ===== */
+        #offlineEntry {
+            width: 100%;
+            max-width: 340px;
+            margin-top: 10px;
+            padding: 12px 14px;
+            border: 1px dashed var(--line);
+            border-radius: 10px;
+            background: var(--panel2);
+            display: none;
+            flex-direction: column;
+            gap: 8px;
+            text-align: left;
+        }
+        #offlineEntry.show { display: flex; }
+        #offlineEntry p {
+            margin: 0;
+            font-size: 12px;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+        #offlineEntry button {
+            background: transparent;
+            border: 1px solid var(--info);
+            color: var(--info);
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 12.5px;
+            font-weight: 600;
+        }
+        #offlineEntry button:hover { background: rgba(91,156,255,.1); }
+        #localModeBanner {
+            display: none;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            margin-bottom: 14px;
+            border-radius: 10px;
+            background: var(--signal-dim);
+            border: 1px solid #5a3226;
+            color: var(--text);
+            font-size: 12.5px;
+        }
+        #localModeBanner.show { display: flex; }
+        #localModeBanner .lmb-ico { font-size: 15px; flex-shrink: 0; }
+        #localModeBanner .lmb-text { flex: 1; line-height: 1.5; }
+        #localModeBanner .lmb-text b { color: var(--amber); }
+        #localModeBanner button {
+            background: transparent;
+            border: 1px solid var(--line);
+            color: var(--text);
+            border-radius: 7px;
+            padding: 6px 10px;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+        #localModeBanner button:hover { border-color: var(--info); color: var(--info); }
+        #localModeBanner .lmb-close {
+            border: none;
+            padding: 4px 6px;
+            color: var(--muted);
+            font-size: 15px;
+        }
+        #localBackupPill {
+            display: none;
+            align-items: center;
+            gap: 6px;
+        }
+        #localBackupPill.show { display: inline-flex; }
+        #localBackupPill .dot { background: var(--amber); }
     </style>
 </head>
 <body>
@@ -1139,6 +1209,11 @@
             <button type="submit" class="btn primary" id="loginBtn" style="justify-content:center;">Sign in</button>
             <div id="loginError"></div>
         </form>
+        <div id="offlineEntry">
+            <p><b style="color:var(--amber);">Firebase unreachable or over its free-tier limit?</b> If you've uploaded a file on this device before, you can still view it without signing in.</p>
+            <button type="button" id="viewOfflineBtn">View last saved data offline</button>
+            <p id="offlineEntryMeta" style="font-size:11px;"></p>
+        </div>
     </div>
 
     <div class="wrap" id="appWrap" style="display:none;">
@@ -1154,6 +1229,8 @@
             </div>
             <div class="top-actions">
                 <span class="pill" id="recordPill"><span class="dot"></span><span id="recordPillTxt">No file loaded</span></span>
+                <span class="pill" id="localBackupPill" title="A local backup of your data is cached in this browser. Click to clear it."><span class="dot"></span><span id="localBackupPillTxt">Local backup saved</span></span>
+                <button class="btn ghost" id="clearLocalBackupBtn" style="display:none;" title="Clear the local backup cached in this browser">Clear local backup</button>
                 <button class="btn ghost" id="resetFiltersBtn" style="display:none;">Reset filters</button>
                 <button class="btn" id="exportBtn" style="display:none;">Export CSV</button>
                 <button class="btn primary" id="saveFirebaseBtn" style="display:none;">
@@ -1162,9 +1239,16 @@
                 </button>
                 <button class="btn" id="newFileBtn" style="display:none;">Load new file</button>
                 <span class="pill" id="userPill" style="display:none;"><span class="dot"></span><span id="userPillTxt"></span></span>
-                <button class="btn ghost" id="logoutBtn">Sign out</button>
+                <button class="btn ghost" id="logoutBtn" style="display:none;">Sign out</button>
             </div>
         </header>
+
+        <div id="localModeBanner">
+            <span class="lmb-ico">⚠️</span>
+            <span class="lmb-text" id="localModeBannerText"></span>
+            <button type="button" id="retryFirebaseBtn">Reconnect to Firebase</button>
+            <button type="button" class="lmb-close" id="closeLocalBannerBtn">✕</button>
+        </div>
 
         <!-- ===== UPLOAD STAGE ===== -->
         <div id="uploadStage">
@@ -1798,6 +1882,7 @@
 
         function handleFile(file) {
             uploadError.style.display = 'none';
+            state.lastFileName = file.name;
             const reader = new FileReader();
             reader.onload = evt => {
                 try {
@@ -1843,6 +1928,13 @@
             const normalized = normalizeRows(rawRows);
             state.data = normalized;
             state.lastUploadedRows = normalized.length;
+
+            // Mirror whatever is now on screen into the local IndexedDB
+            // backup, so it can still be viewed later if Firebase's free
+            // tier limit is reached. This runs for every source (upload,
+            // sample data, a fresh Firestore load, or the backup itself)
+            // so the cache always reflects the most recent good data.
+            saveLocalBackup(rawRows, { fileName: state.lastFileName });
 
             const mappedCount = Object.keys(CANON_LABEL).filter(k => normalized.some(r => r[k] !== undefined && r[k] !==
                 null && r[k] !== '')).length;
@@ -1905,7 +1997,12 @@
                 showSaveStatus('✅', 'Successfully saved ' + state.rawRows.length + ' rows to Firebase!');
             } catch (err) {
                 console.error('Firebase save error:', err);
-                showSaveStatus('❌', 'Error saving: ' + (err.message || 'unknown error'), true);
+                if (isFirebaseLimitError(err)) {
+                    await saveLocalBackup(state.rawRows, { fileName: state.lastFileName });
+                    showSaveStatus('⚠️', "Firebase's free write limit seems to be reached, so this couldn't be saved to the cloud. It's still kept locally in this browser, so you can keep viewing it — just re-upload it if you switch devices or clear browser data, and try saving to Firebase again once the limit resets.", true);
+                } else {
+                    showSaveStatus('❌', 'Error saving: ' + (err.message || 'unknown error'), true);
+                }
             } finally {
                 state.isSaving = false;
                 saveBtn.disabled = false;
@@ -1964,16 +2061,230 @@
                 });
 
                 if (results.length) {
+                    state.dataSource = 'firebase';
                     bootFromRawRows(results);
+                    hideLocalModeBanner();
                     showSaveStatus('✅', 'Loaded ' + results.length + ' rows from Firebase.');
                 } else {
                     hideSaveStatus();
                 }
             } catch (err) {
                 console.error('Error auto-loading data:', err);
-                showSaveStatus('❌', 'Error loading data: ' + (err.message || 'unknown error'), true);
+                if (isFirebaseLimitError(err)) {
+                    const usedFallback = await tryEnterLocalFallback('Firebase read limit reached, so live data could not be loaded.');
+                    if (!usedFallback) {
+                        showSaveStatus('❌', "Firebase's free read/write limit seems to be reached, and there's no local backup saved in this browser yet. Upload a file below to keep working — it will be cached locally so you can view it even if this happens again.", true);
+                    }
+                } else {
+                    showSaveStatus('❌', 'Error loading data: ' + (err.message || 'unknown error'), true);
+                }
             }
         }
+
+        // --------------------------------------------------------------
+        // 8b. LOCAL BACKUP CACHE — Firebase free-tier fallback
+        // --------------------------------------------------------------
+        // Firebase's Spark (free) plan caps daily Firestore reads/writes.
+        // Once that cap is hit, Firestore starts rejecting requests until
+        // it resets. To make sure you can still SEE your data in the
+        // meantime, every file that gets loaded into the dashboard (via
+        // upload, sample data, or a successful Firestore load) is also
+        // mirrored into this browser's IndexedDB. If Firestore then fails
+        // with a quota/limit-type error, we transparently fall back to
+        // that local copy instead of leaving the dashboard empty.
+        // This is a per-browser, per-device cache only — it is not a
+        // substitute for Firebase and is cleared if the user clears their
+        // browser storage.
+        const LOCAL_DB_NAME = 'qaDashboardLocalCache';
+        const LOCAL_DB_VERSION = 1;
+        const LOCAL_STORE = 'backups';
+        const LOCAL_KEY = 'lastUpload';
+
+        function openLocalCacheDB() {
+            return new Promise((resolve, reject) => {
+                if (!('indexedDB' in window)) { reject(new Error('IndexedDB is not supported in this browser.')); return; }
+                const req = indexedDB.open(LOCAL_DB_NAME, LOCAL_DB_VERSION);
+                req.onupgradeneeded = () => {
+                    const idb = req.result;
+                    if (!idb.objectStoreNames.contains(LOCAL_STORE)) idb.createObjectStore(LOCAL_STORE);
+                };
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error || new Error('Could not open local cache.'));
+            });
+        }
+
+        function dateReplacer(row) {
+            const out = {};
+            for (const k in row) {
+                out[k] = (row[k] instanceof Date) ? { __isDate: true, iso: row[k].toISOString() } : row[k];
+            }
+            return out;
+        }
+
+        function dateReviver(row) {
+            const out = {};
+            for (const k in row) {
+                const v = row[k];
+                out[k] = (v && typeof v === 'object' && v.__isDate) ? new Date(v.iso) : v;
+            }
+            return out;
+        }
+
+        // Saves the current raw rows to IndexedDB so they can be viewed later
+        // even if Firebase is unreachable or over its free-tier limit.
+        // Fire-and-forget: failures here should never block the dashboard.
+        async function saveLocalBackup(rawRows, meta) {
+            if (!rawRows || !rawRows.length) return;
+            try {
+                const idb = await openLocalCacheDB();
+                const payload = {
+                    rows: rawRows.map(dateReplacer),
+                    savedAt: Date.now(),
+                    rowCount: rawRows.length,
+                    fileName: (meta && meta.fileName) || null
+                };
+                await new Promise((resolve, reject) => {
+                    const tx = idb.transaction(LOCAL_STORE, 'readwrite');
+                    tx.objectStore(LOCAL_STORE).put(payload, LOCAL_KEY);
+                    tx.oncomplete = resolve;
+                    tx.onerror = () => reject(tx.error);
+                });
+                idb.close();
+                updateLocalBackupUI(payload);
+            } catch (err) {
+                console.warn('Local backup save skipped:', err.message);
+            }
+        }
+
+        async function loadLocalBackup() {
+            try {
+                const idb = await openLocalCacheDB();
+                const payload = await new Promise((resolve, reject) => {
+                    const tx = idb.transaction(LOCAL_STORE, 'readonly');
+                    const req = tx.objectStore(LOCAL_STORE).get(LOCAL_KEY);
+                    req.onsuccess = () => resolve(req.result || null);
+                    req.onerror = () => reject(req.error);
+                });
+                idb.close();
+                if (!payload) return null;
+                return {
+                    rows: payload.rows.map(dateReviver),
+                    savedAt: payload.savedAt,
+                    rowCount: payload.rowCount,
+                    fileName: payload.fileName
+                };
+            } catch (err) {
+                console.warn('Local backup load failed:', err.message);
+                return null;
+            }
+        }
+
+        async function clearLocalBackup() {
+            try {
+                const idb = await openLocalCacheDB();
+                await new Promise((resolve, reject) => {
+                    const tx = idb.transaction(LOCAL_STORE, 'readwrite');
+                    tx.objectStore(LOCAL_STORE).delete(LOCAL_KEY);
+                    tx.oncomplete = resolve;
+                    tx.onerror = () => reject(tx.error);
+                });
+                idb.close();
+            } catch (err) {
+                console.warn('Local backup clear failed:', err.message);
+            }
+            updateLocalBackupUI(null);
+        }
+
+        function relativeTime(ts) {
+            const diffMs = Date.now() - ts;
+            const mins = Math.round(diffMs / 60000);
+            if (mins < 1) return 'just now';
+            if (mins < 60) return mins + ' min ago';
+            const hrs = Math.round(mins / 60);
+            if (hrs < 24) return hrs + ' hr ago';
+            const days = Math.round(hrs / 24);
+            return days + ' day' + (days === 1 ? '' : 's') + ' ago';
+        }
+
+        // Updates the small "Local backup saved" pill in the header and the
+        // offline-entry hint on the sign-in screen.
+        function updateLocalBackupUI(payload) {
+            const pill = document.getElementById('localBackupPill');
+            const pillTxt = document.getElementById('localBackupPillTxt');
+            const clearBtn = document.getElementById('clearLocalBackupBtn');
+            const entry = document.getElementById('offlineEntry');
+            const entryMeta = document.getElementById('offlineEntryMeta');
+            if (payload) {
+                pill.classList.add('show');
+                pillTxt.textContent = 'Local backup · ' + payload.rowCount.toLocaleString() + ' rows · ' + relativeTime(payload.savedAt);
+                clearBtn.style.display = 'inline-flex';
+                entry.classList.add('show');
+                entryMeta.textContent = 'Saved ' + payload.rowCount.toLocaleString() + ' rows, ' + relativeTime(payload.savedAt) + '.';
+            } else {
+                pill.classList.remove('show');
+                clearBtn.style.display = 'none';
+                entry.classList.remove('show');
+            }
+        }
+
+        // Checks IndexedDB on page load so the "view offline" option on the
+        // sign-in screen and the header pill are correct from the start.
+        async function refreshLocalBackupIndicator() {
+            const backup = await loadLocalBackup();
+            updateLocalBackupUI(backup);
+            return backup;
+        }
+
+        // Detects Firestore/Firebase errors that indicate the free-tier
+        // quota (reads, writes, or bandwidth) has been reached, as opposed
+        // to e.g. a bad query or a permissions bug.
+        function isFirebaseLimitError(err) {
+            if (!err) return false;
+            const code = (err.code || '').toLowerCase();
+            const msg = (err.message || '').toLowerCase();
+            return code === 'resource-exhausted' ||
+                code === 'unavailable' ||
+                /resource[-_ ]exhausted|quota|exceeded|too many requests|limit/.test(msg);
+        }
+
+        function showLocalModeBanner(reason, backup) {
+            const banner = document.getElementById('localModeBanner');
+            const text = document.getElementById('localModeBannerText');
+            const savedWhen = backup ? relativeTime(backup.savedAt) : 'earlier';
+            text.innerHTML = '<b>' + escapeHtml(reason) + '</b> Showing a local backup saved in this browser ' +
+                savedWhen + ' (' + (backup ? backup.rowCount.toLocaleString() : '0') +
+                ' rows). This copy may be out of date — it is not live Firebase data.';
+            banner.classList.add('show');
+        }
+
+        function hideLocalModeBanner() {
+            document.getElementById('localModeBanner').classList.remove('show');
+        }
+
+        // Attempts to load the local backup and boot the dashboard from it.
+        // Returns true if a backup was found and loaded, false otherwise.
+        async function tryEnterLocalFallback(reason) {
+            const backup = await loadLocalBackup();
+            if (!backup || !backup.rows.length) return false;
+            state.dataSource = 'local-backup';
+            bootFromRawRows(backup.rows);
+            showLocalModeBanner(reason, backup);
+            showSaveStatus('⚠️', reason + ' Showing your last locally-saved data instead.', true);
+            return true;
+        }
+
+        document.getElementById('retryFirebaseBtn').addEventListener('click', async () => {
+            hideLocalModeBanner();
+            state.offlineMode = false;
+            showSaveStatus('⏳', 'Reconnecting to Firebase…');
+            await loadAllData();
+        });
+        document.getElementById('closeLocalBannerBtn').addEventListener('click', hideLocalModeBanner);
+
+        document.getElementById('clearLocalBackupBtn').addEventListener('click', async () => {
+            if (!confirm('Clear the local backup cached in this browser? You will lose the ability to view it offline if Firebase becomes unreachable.')) return;
+            await clearLocalBackup();
+        });
 
         // --------------------------------------------------------------
         // 9. SLICERS
@@ -2990,6 +3301,33 @@
         const userPillTxt = document.getElementById('userPillTxt');
 
         let dataBooted = false;
+        state.offlineMode = false;
+
+        // --------------------------------------------------------------
+        // 17a-ii. OFFLINE ENTRY — view local backup without Firebase at all
+        // --------------------------------------------------------------
+        // Covers the worst case: Firebase Auth itself is unreachable or
+        // rate-limited, so the sign-in form never succeeds. If a local
+        // backup exists in this browser, the user can jump straight to
+        // the dashboard using that cached copy, no sign-in required.
+        refreshLocalBackupIndicator();
+
+        document.getElementById('viewOfflineBtn').addEventListener('click', async () => {
+            const backup = await loadLocalBackup();
+            if (!backup || !backup.rows.length) {
+                document.getElementById('offlineEntryMeta').textContent = 'No local backup found on this device yet.';
+                return;
+            }
+            state.offlineMode = true;
+            dataBooted = true;
+            authGateEl.style.display = 'none';
+            appWrapEl.style.display = '';
+            userPill.style.display = 'none';
+            logoutBtn.style.display = 'none';
+            state.dataSource = 'local-backup';
+            bootFromRawRows(backup.rows);
+            showLocalModeBanner('Viewing offline — not signed in to Firebase.', backup);
+        });
 
         // --------------------------------------------------------------
         // 17b. INACTIVITY AUTO-LOGOUT
@@ -3042,10 +3380,13 @@
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
+                state.offlineMode = false;
                 authGateEl.style.display = 'none';
                 appWrapEl.style.display = '';
                 userPill.style.display = '';
+                logoutBtn.style.display = '';
                 userPillTxt.textContent = user.email || 'Signed in';
+                hideLocalModeBanner();
                 startInactivityWatch();
 
                 if (!dataBooted) {
@@ -3053,10 +3394,16 @@
                     loadAllData();
                 }
             } else {
+                // If the user is deliberately viewing their local backup
+                // offline (Firebase unreachable / limit reached), don't
+                // yank them back to the sign-in screen just because there's
+                // no authenticated Firebase user.
+                if (state.offlineMode) return;
                 appWrapEl.style.display = 'none';
                 userPill.style.display = 'none';
                 authGateEl.style.display = 'flex';
                 stopInactivityWatch();
+                dataBooted = false;
                 if (inactivityLogout) {
                     loginError.textContent = 'Signed out after 5 minutes of inactivity. Please sign in again.';
                     inactivityLogout = false;
