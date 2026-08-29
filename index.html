@@ -322,38 +322,6 @@
             border-radius: 6px;
             padding: 4px 8px;
         }
-        #fetchSection {
-            background: var(--panel);
-            border: 1px solid var(--line);
-            border-radius: var(--radius);
-            padding: 20px 24px;
-            margin-bottom: 22px;
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            flex-wrap: wrap;
-        }
-        #fetchSection .lbl {
-            font-family: var(--font-mono);
-            font-size: 12px;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            color: var(--muted);
-        }
-        #fetchSection select {
-            background: var(--panel2);
-            color: var(--text);
-            border: 1px solid var(--line);
-            border-radius: 6px;
-            padding: 8px 12px;
-            font-size: 13px;
-            min-width: 160px;
-        }
-        #fetchSection .status {
-            font-size: 12px;
-            color: var(--muted);
-            margin-left: auto;
-        }
         #dashboard {
             display: none;
         }
@@ -947,33 +915,6 @@
             border: 1px dashed var(--line);
         }
 
-        /* Auto-load indicator */
-        #autoLoadStatus {
-            font-size: 12px;
-            color: var(--muted);
-            padding: 6px 12px;
-            border-radius: 6px;
-            background: var(--panel2);
-            border: 1px solid var(--line);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        #autoLoadStatus .spinner-sm {
-            width: 14px;
-            height: 14px;
-            border: 2px solid var(--line);
-            border-top-color: var(--signal);
-            border-radius: 50%;
-            animation: spin 0.7s linear infinite;
-            display: none;
-        }
-        #autoLoadStatus.loading .spinner-sm {
-            display: inline-block;
-        }
-        #autoLoadStatus .ico {
-            font-size: 16px;
-        }
 
         @media (max-width:1100px) {
             .kpi-strip {
@@ -1010,18 +951,6 @@
             }
             #uploadStage h2 {
                 font-size: 19px;
-            }
-            #fetchSection {
-                padding: 14px 16px;
-                gap: 12px;
-            }
-            #fetchSection .status {
-                margin-left: 0;
-                width: 100%;
-            }
-            #fetchSection select {
-                min-width: 0;
-                flex: 1;
             }
             .searchbox {
                 min-width: 0;
@@ -1237,17 +1166,6 @@
             </div>
         </header>
 
-        <!-- ===== FETCH FROM FIRESTORE ===== -->
-        <div id="fetchSection">
-            <span class="lbl">📁 Fetch from Firestore</span>
-            <select id="weekSelect" disabled>
-                <option value="">Loading weeks…</option>
-            </select>
-            <button class="btn primary" id="fetchFromFirestoreBtn" disabled>Fetch Data</button>
-            <span class="status" id="fetchStatus">Scanning database…</span>
-            <span id="autoLoadStatus"><span class="spinner-sm"></span><span class="ico">⏳</span><span>Auto-loading…</span></span>
-        </div>
-
         <!-- ===== UPLOAD STAGE ===== -->
         <div id="uploadStage">
             <div class="icon">
@@ -1432,8 +1350,6 @@
             collection,
             writeBatch,
             doc,
-            query,
-            where,
             getDocs,
             serverTimestamp
         } from "firebase/firestore";
@@ -1491,7 +1407,8 @@
             chartReady: false,
             isSaving: false,
             lastUploadedRows: 0,
-            firebaseCollection: 'table' // collection name in Firestore
+            firebaseCollection: 'table', // collection name in Firestore
+            periodFilter: { mode: 'day', day: new Set(), week: new Set(), month: new Set() }
         };
 
         const SLICER_FIELDS = [
@@ -1507,6 +1424,39 @@
             { key: 'correctRcTagging', label: 'Correct RC Tag' },
             { key: 'isRecontact', label: 'Recontact' }
         ];
+
+        // Config for the Day / Week / Month period filter. `key` is the row
+        // field to match against; `sortKey` (optional) is used for ordering
+        // options chronologically; `display` renders the checkbox label.
+        const PERIOD_MODES = {
+            day: {
+                label: 'Day',
+                key: 'dateStr',
+                sortKey: v => v || '',
+                display: v => {
+                    const row = state.data.find(r => r.dateStr === v);
+                    return row && row.dateLabel ? row.dateLabel : v;
+                }
+            },
+            week: {
+                label: 'Week',
+                key: 'week',
+                sortKey: v => {
+                    const row = state.data.find(r => r.week === v);
+                    return row ? row.weekSortKey : v;
+                },
+                display: v => v || 'Unspecified'
+            },
+            month: {
+                label: 'Month',
+                key: 'monthKey',
+                sortKey: v => v || '',
+                display: v => {
+                    const row = state.data.find(r => r.monthKey === v);
+                    return row && row.monthLabel ? row.monthLabel : v;
+                }
+            }
+        };
 
         // --------------------------------------------------------------
         // 3. HEADER MAPPING + PARSING (same as index.html)
@@ -1613,6 +1563,20 @@
             return d.getDate() + ' ' + m[d.getMonth()];
         }
 
+        const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August',
+            'September', 'October', 'November', 'December'
+        ];
+
+        function fmtMonthKey(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1); }
+
+        function fmtMonthLabel(d) { return MONTH_NAMES[d.getMonth()] + ' ' + d.getFullYear(); }
+
+        function fmtDateLong(d) {
+            const m = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const wd = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            return wd[d.getDay()] + ', ' + m[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
+        }
+
         // Normalize rows: map headers to canonical keys
         function normalizeRows(rawRows) {
             return rawRows.map(raw => {
@@ -1625,11 +1589,17 @@
                 if (raw['Week'] !== undefined) row.week = raw['Week'];
 
                 const submitTime = parseDateVal(row.submitTime);
+                const weekStr = (row.week !== undefined && row.week !== null && row.week !== '') ? String(row.week)
+                    .trim() : null;
+                const weekNumMatch = weekStr ? weekStr.match(/\d+/) : null;
                 return {
-                    week: (row.week !== undefined && row.week !== null && row.week !== '') ? String(row.week)
-                    .trim() : null,
+                    week: weekStr,
+                    weekSortKey: weekNumMatch ? parseInt(weekNumMatch[0], 10) : (weekStr || ''),
                     submitTime,
                     dateStr: submitTime ? fmtDate(submitTime) : null,
+                    dateLabel: submitTime ? fmtDateLong(submitTime) : null,
+                    monthKey: submitTime ? fmtMonthKey(submitTime) : null,
+                    monthLabel: submitTime ? fmtMonthLabel(submitTime) : null,
                     agentEmail: (row.agentEmail || '').toString().trim(),
                     agentName: (row.agentName || 'Unknown').toString().trim() || 'Unknown',
                     agentType: (row.agentType || '').toString().trim(),
@@ -1878,7 +1848,6 @@
             try {
                 await saveToFirestoreInBatches(state.rawRows);
                 showSaveStatus('✅', 'Successfully saved ' + state.rawRows.length + ' rows to Firebase!');
-                await loadAvailableWeeks();
             } catch (err) {
                 console.error('Firebase save error:', err);
                 showSaveStatus('❌', 'Error saving: ' + (err.message || 'unknown error'), true);
@@ -1914,74 +1883,15 @@
         }
 
         // --------------------------------------------------------------
-        // 8. FETCH FROM FIRESTORE BY WEEK (dropdown)
+        // 8. AUTO-LOAD ALL DATA FROM FIRESTORE (on sign-in)
         // --------------------------------------------------------------
-        const weekSelect = document.getElementById('weekSelect');
-        const fetchFromFirestoreBtn = document.getElementById('fetchFromFirestoreBtn');
-        const fetchStatus = document.getElementById('fetchStatus');
-        const autoLoadStatus = document.getElementById('autoLoadStatus');
-
-        // Load available weeks from Firestore
-        async function loadAvailableWeeks() {
-            try {
-                const tableRef = collection(db, state.firebaseCollection);
-                const querySnapshot = await getDocs(tableRef);
-
-                const availableWeeks = new Set();
-                querySnapshot.forEach(docSnap => {
-                    const data = docSnap.data();
-                    let weekVal = data.Week !== undefined ? data.Week : data.week;
-                    if (weekVal !== undefined && weekVal !== null && weekVal !== '') {
-                        const numWeek = Number(weekVal);
-                        if (!isNaN(numWeek)) {
-                            availableWeeks.add(numWeek);
-                        } else {
-                            // Try to extract number from string like 'W1'
-                            const match = String(weekVal).match(/\d+/);
-                            if (match) {
-                                availableWeeks.add(Number(match[0]));
-                            }
-                        }
-                    }
-                });
-
-                const sortedWeeks = Array.from(availableWeeks).sort((a, b) => a - b);
-
-                weekSelect.innerHTML = '';
-                if (sortedWeeks.length === 0) {
-                    weekSelect.innerHTML = '<option value="">No weeks found</option>';
-                    weekSelect.disabled = true;
-                    fetchFromFirestoreBtn.disabled = true;
-                    fetchStatus.textContent = 'No data in Firestore collection "' + state.firebaseCollection + '"';
-                    return;
-                }
-
-                sortedWeeks.forEach(week => {
-                    const option = document.createElement('option');
-                    option.value = week;
-                    option.textContent = 'Week ' + week;
-                    weekSelect.appendChild(option);
-                });
-
-                weekSelect.disabled = false;
-                fetchFromFirestoreBtn.disabled = false;
-                fetchStatus.textContent = sortedWeeks.length + ' week(s) available';
-            } catch (err) {
-                console.error('Error loading weeks:', err);
-                fetchStatus.textContent = 'Error loading weeks: ' + err.message;
-                weekSelect.disabled = true;
-                fetchFromFirestoreBtn.disabled = true;
-            }
-        }
-
-        // --------------------------------------------------------------
-        // 8b. AUTO-LOAD ALL DATA FROM FIRESTORE ON PAGE LOAD
-        // --------------------------------------------------------------
+        // All data is loaded once, in full, right after sign-in. There's no
+        // manual "fetch a week" step anymore — once loaded, use the Period
+        // filter (Day / Week / Month, multi-select) in the filter rail to
+        // narrow the view client-side, instantly, without re-querying
+        // Firestore.
         async function loadAllData() {
-            autoLoadStatus.className = 'loading';
-            autoLoadStatus.querySelector('.ico').textContent = '⏳';
-            autoLoadStatus.querySelector('span:last-child').textContent = 'Auto-loading…';
-
+            showSaveStatus('⏳', 'Loading data from Firebase…');
             try {
                 const tableRef = collection(db, state.firebaseCollection);
                 const querySnapshot = await getDocs(tableRef);
@@ -2000,85 +1910,40 @@
 
                 if (results.length) {
                     bootFromRawRows(results);
-                    fetchStatus.textContent = '✅ Auto-loaded ' + results.length + ' rows from Firestore';
-                    autoLoadStatus.className = '';
-                    autoLoadStatus.querySelector('.ico').textContent = '✅';
-                    autoLoadStatus.querySelector('span:last-child').textContent = 'Auto-loaded ' + results.length +
-                        ' rows';
+                    showSaveStatus('✅', 'Loaded ' + results.length + ' rows from Firebase.');
                 } else {
-                    fetchStatus.textContent = '📭 No data found in Firestore. Upload a file to get started.';
-                    autoLoadStatus.className = '';
-                    autoLoadStatus.querySelector('.ico').textContent = '📭';
-                    autoLoadStatus.querySelector('span:last-child').textContent = 'No data in Firestore';
+                    hideSaveStatus();
                 }
             } catch (err) {
                 console.error('Error auto-loading data:', err);
-                fetchStatus.textContent = '❌ Error auto-loading: ' + err.message;
-                autoLoadStatus.className = '';
-                autoLoadStatus.querySelector('.ico').textContent = '❌';
-                autoLoadStatus.querySelector('span:last-child').textContent = 'Auto-load error';
+                showSaveStatus('❌', 'Error loading data: ' + (err.message || 'unknown error'), true);
             }
         }
-
-        // Week fetch button
-        fetchFromFirestoreBtn.addEventListener('click', async () => {
-            const selectedWeek = weekSelect.value;
-            if (!selectedWeek) {
-                alert('Please select a week.');
-                return;
-            }
-            const weekNum = Number(selectedWeek);
-            if (isNaN(weekNum)) {
-                alert('Invalid week number.');
-                return;
-            }
-
-            fetchFromFirestoreBtn.disabled = true;
-            fetchStatus.textContent = 'Fetching week ' + weekNum + '…';
-
-            try {
-                const tableRef = collection(db, state.firebaseCollection);
-                const q = query(tableRef, where("Week", "==", weekNum));
-                const querySnapshot = await getDocs(q);
-                const results = [];
-                querySnapshot.forEach(docSnap => {
-                    const data = docSnap.data();
-                    for (const k in data) {
-                        if (typeof data[k] === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(data[k])) {
-                            const d = new Date(data[k]);
-                            if (!isNaN(d)) data[k] = d;
-                        }
-                    }
-                    results.push(data);
-                });
-                if (!results.length) {
-                    alert('No records found for Week ' + weekNum);
-                    fetchStatus.textContent = 'No records for week ' + weekNum;
-                    fetchFromFirestoreBtn.disabled = false;
-                    return;
-                }
-                bootFromRawRows(results);
-                fetchStatus.textContent = 'Loaded ' + results.length + ' rows from week ' + weekNum;
-                // Update auto-load status to reflect manual fetch
-                autoLoadStatus.className = '';
-                autoLoadStatus.querySelector('.ico').textContent = '📁';
-                autoLoadStatus.querySelector('span:last-child').textContent = 'Week ' + weekNum + ' loaded';
-            } catch (err) {
-                console.error('Fetch error:', err);
-                alert('Error fetching data: ' + err.message);
-                fetchStatus.textContent = 'Error: ' + err.message;
-            } finally {
-                fetchFromFirestoreBtn.disabled = false;
-            }
-        });
 
         // --------------------------------------------------------------
         // 9. SLICERS
         // --------------------------------------------------------------
         function initFilters() {
             SLICER_FIELDS.forEach(f => state.filterValues[f.key] = new Set());
+            state.periodFilter = { mode: 'day', day: new Set(), week: new Set(), month: new Set() };
             const grid = document.getElementById('slicerGrid');
             grid.innerHTML = '';
+
+            // Period (Day/Week/Month) slicer — always first, custom panel.
+            const periodWrap = document.createElement('div');
+            periodWrap.className = 'slicer';
+            periodWrap.id = 'periodSlicer';
+            periodWrap.innerHTML =
+                '<button type="button"><span class="lbltxt">📅 Period</span><span class="count" style="display:none;"></span></button><div class="slicer-panel" style="width:250px;"></div>';
+            grid.appendChild(periodWrap);
+            periodWrap.querySelector('button').addEventListener('click', e => {
+                e.stopPropagation();
+                const wasOpen = periodWrap.classList.contains('open');
+                document.querySelectorAll('.slicer.open').forEach(s => s.classList.remove('open'));
+                if (!wasOpen) { periodWrap.classList.add('open');
+                    buildPeriodPanel(); }
+            });
+
             SLICER_FIELDS.forEach(f => {
                 const wrap = document.createElement('div');
                 wrap.className = 'slicer';
@@ -2104,6 +1969,11 @@
             });
             document.getElementById('resetFiltersBtn').addEventListener('click', () => {
                 SLICER_FIELDS.forEach(f => state.filterValues[f.key].clear());
+                state.periodFilter.mode = 'day';
+                state.periodFilter.day.clear();
+                state.periodFilter.week.clear();
+                state.periodFilter.month.clear();
+                updatePeriodButtonState();
                 state.drillL1 = null;
                 state.search = '';
                 document.getElementById('freeSearch').value = '';
@@ -2180,6 +2050,97 @@
             wrap.classList.toggle('active', n > 0);
         }
 
+        // ---- Period (Day / Week / Month) filter ----
+        function periodValueCounts(mode) {
+            const modeCfg = PERIOD_MODES[mode];
+            const counts = new Map();
+            baseFiltered('__period__').forEach(row => {
+                const v = row[modeCfg.key];
+                if (v === null || v === undefined || v === '') return;
+                counts.set(v, (counts.get(v) || 0) + 1);
+            });
+            return [...counts.entries()].sort((a, b) => {
+                const sa = modeCfg.sortKey(a[0]),
+                    sb = modeCfg.sortKey(b[0]);
+                if (sa < sb) return -1;
+                if (sa > sb) return 1;
+                return 0;
+            });
+        }
+
+        function buildPeriodPanel() {
+            const wrap = document.getElementById('periodSlicer');
+            const panel = wrap.querySelector('.slicer-panel');
+            const mode = state.periodFilter.mode;
+            const modeCfg = PERIOD_MODES[mode];
+            const opts = periodValueCounts(mode);
+            panel.innerHTML =
+                '<div class="toggles" id="periodModeToggles" style="margin-bottom:8px;">' +
+                Object.keys(PERIOD_MODES).map(m => '<button type="button" data-mode="' + m + '" class="' + (m ===
+                    mode ? 'on' : '') + '">' + PERIOD_MODES[m].label + '</button>').join('') +
+                '</div>' +
+                '<input type="text" class="search" placeholder="Search ' + modeCfg.label + '…">' +
+                '<div class="row-actions"><button data-act="all">Select all</button><button data-act="none">Clear</button></div>' +
+                '<div class="opts"></div>';
+            const optsEl = panel.querySelector('.opts');
+
+            function draw(filterTxt) {
+                optsEl.innerHTML = '';
+                opts.filter(([v]) => !filterTxt || String(modeCfg.display(v)).toLowerCase().includes(filterTxt))
+                    .forEach(([v, n]) => {
+                        const id = 'opt_period_' + mode + '_' + String(v).replace(/[^a-z0-9]/gi, '_');
+                        const row = document.createElement('label');
+                        row.className = 'slicer-opt';
+                        row.innerHTML = '<input type="checkbox" id="' + id + '"><span>' + escapeHtml(String(modeCfg
+                            .display(v))) + '</span><span class="n">' + n + '</span>';
+                        const cb = row.querySelector('input');
+                        cb.checked = state.periodFilter[mode].has(v);
+                        cb.addEventListener('change', () => {
+                            if (cb.checked) state.periodFilter[mode].add(v);
+                            else state.periodFilter[mode].delete(v);
+                            updatePeriodButtonState();
+                            render();
+                        });
+                        optsEl.appendChild(row);
+                    });
+                if (!opts.length) {
+                    optsEl.innerHTML = '<div style="color:var(--muted);font-size:11.5px;padding:6px 3px;">No ' +
+                        modeCfg.label.toLowerCase() + 's in the current data.</div>';
+                }
+            }
+            draw('');
+            panel.querySelector('.search').addEventListener('input', e => draw(e.target.value.toLowerCase()));
+            panel.querySelector('[data-act="all"]').addEventListener('click', () => { opts.forEach(([v]) => state
+                    .periodFilter[mode].add(v));
+                buildPeriodPanel();
+                updatePeriodButtonState();
+                render(); });
+            panel.querySelector('[data-act="none"]').addEventListener('click', () => { state.periodFilter[mode]
+                    .clear();
+                buildPeriodPanel();
+                updatePeriodButtonState();
+                render(); });
+            panel.querySelectorAll('#periodModeToggles button').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    state.periodFilter.mode = btn.dataset.mode;
+                    buildPeriodPanel();
+                    updatePeriodButtonState();
+                    render();
+                });
+            });
+            panel.addEventListener('click', e => e.stopPropagation());
+        }
+
+        function updatePeriodButtonState() {
+            const wrap = document.getElementById('periodSlicer');
+            const pf = state.periodFilter;
+            const n = pf[pf.mode].size;
+            const countEl = wrap.querySelector('.count');
+            countEl.style.display = n ? 'inline-block' : 'none';
+            countEl.textContent = n;
+            wrap.classList.toggle('active', n > 0);
+        }
+
         function escapeHtml(s) { return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;',
                 "'": '&#39;' })[c]); }
 
@@ -2194,6 +2155,14 @@
                     else if (v === false) v = 'No';
                     else if (v === null || v === undefined || v === '') v = 'Unspecified';
                     if (!sel.has(v)) return false;
+                }
+                if (excludeField !== '__period__') {
+                    const pf = state.periodFilter;
+                    const activeSet = pf[pf.mode];
+                    if (activeSet.size > 0) {
+                        const modeCfg = PERIOD_MODES[pf.mode];
+                        if (!activeSet.has(row[modeCfg.key])) return false;
+                    }
                 }
                 if (state.drillL1 && row.l1Reason !== state.drillL1) return false;
                 if (state.search) {
@@ -2294,7 +2263,8 @@
 
         function groupBy(rows, key) {
             const m = new Map();
-            rows.forEach(r => { const k = r[key]; if (!m.has(k)) m.set(k, []); m.get(k).push(r); });
+            rows.forEach(r => { const k = r[key]; if (!m.has(k)) m.set(k, []);
+                m.get(k).push(r); });
             return m;
         }
 
@@ -2346,7 +2316,8 @@
             if (existing) existing.remove();
             const div = document.createElement('div');
             div.className = 'chart-placeholder';
-            div.textContent = message || 'Chart library not loaded. Please check your internet connection and refresh.';
+            div.textContent = message ||
+                'Chart library not loaded. Please check your internet connection and refresh.';
             parent.appendChild(div);
             canvas.style.display = 'none';
         }
@@ -2388,9 +2359,6 @@
         // --------------------------------------------------------------
         // 13. MAIN RENDER
         // --------------------------------------------------------------
-        // Helper to detect mobile screen width
-        const isMobile = () => window.matchMedia('(max-width: 720px)').matches;
-
         function render() {
             const filtered = getFiltered();
             state.filtered = filtered;
@@ -2744,10 +2712,6 @@
                     .numDsats, 0) }));
             arr.forEach(a => a.share = pct(a.dsats, totalDsats));
             sortRows(arr, state.sortState.pareto);
-            // Mobile: keep only top 5
-            if (isMobile()) {
-                arr = arr.slice(0, 5);
-            }
             const byDsatsDesc = [...arr].sort((x, y) => y.dsats - x.dsats);
             let running = 0;
             const cumMap = new Map();
@@ -2782,10 +2746,6 @@
             });
             if (q) arr = arr.filter(a => a.agent.toLowerCase().includes(q));
             sortRows(arr, state.sortState.score);
-            // Mobile: keep only top 5
-            if (isMobile()) {
-                arr = arr.slice(0, 5);
-            }
             const maxDissat = Math.max(1, ...arr.map(a => a.dissat));
             const tbody = document.querySelector('#scoreTable tbody');
             tbody.innerHTML = arr.map(a => {
@@ -2811,10 +2771,6 @@
             const teamAvg = arr.length ? arr.reduce((s, a) => s + a.acc, 0) / arr.length : 0;
             arr.forEach(a => a.flag = (teamAvg - a.acc) > 10 && a.n >= 5);
             sortRows(arr, state.sortState.evalT);
-            // Mobile: keep only top 5
-            if (isMobile()) {
-                arr = arr.slice(0, 5);
-            }
             const tbody = document.querySelector('#evalTable tbody');
             tbody.innerHTML = arr.map(a => '<tr><td data-label="Evaluator" style="font-family:var(--font-body);">' + escapeHtml(a.ev) +
                     '</td><td data-label="Cases QA\'d">' + a.n + '</td><td data-label="RC Accuracy%">' + a.acc.toFixed(1) + '%</td><td data-label="Avg DSATs">' + a.dsats.toFixed(2) +
@@ -2991,7 +2947,7 @@
         // Signs the user out after a period with no mouse/keyboard/touch/
         // scroll activity, so an unattended, signed-in tab doesn't stay
         // open indefinitely.
-        const INACTIVITY_LIMIT_MS = 5 * 60 * 1000; // 5 minutes
+        const INACTIVITY_LIMIT_MS = 3 * 60 * 1000; // 5 minutes
         const ACTIVITY_EVENTS = ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart', 'click'];
         let inactivityTimer = null;
         let inactivityLogout = false;
@@ -3044,13 +3000,7 @@
 
                 if (!dataBooted) {
                     dataBooted = true;
-                    // First load available weeks for the dropdown, then auto-load all data.
-                    loadAvailableWeeks().then(() => {
-                        loadAllData();
-                    }).catch(() => {
-                        // If week loading fails, still try to auto-load data
-                        loadAllData();
-                    });
+                    loadAllData();
                 }
             } else {
                 appWrapEl.style.display = 'none';
@@ -3068,7 +3018,7 @@
         console.log('📊 Each row becomes a JavaScript object with column headers as keys.');
         console.log('🔥 Click "Save to Firebase" to store the raw data (with original headers) in Firestore.');
         console.log('📁 Collection name: "' + state.firebaseCollection + '" in database "shopeemydb2026".');
-        console.log('📈 Auto-loads ALL data from Firestore once you sign in. Use the week dropdown to filter by week.');
+        console.log('📈 Auto-loads ALL data from Firestore once you sign in. Use the Period filter (Day/Week/Month) in the filter rail to narrow the view.');
 
         // Expose for debugging
         window.__state = state;
