@@ -326,6 +326,70 @@
             display: none;
         }
 
+        .scrub-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            padding: 12px 16px;
+            margin-bottom: 14px;
+        }
+        .scrub-bar-left {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            min-width: 200px;
+        }
+        .scrub-bar-left .lbl {
+            font-family: var(--font-display);
+            font-weight: 600;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .scrub-tag {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--amber);
+            border: 1px solid #4a3a1a;
+            background: #241d0c;
+            border-radius: 999px;
+            padding: 2px 8px;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+        }
+        .scrub-bar-left .sub {
+            font-size: 11.5px;
+            color: var(--muted);
+            max-width: 520px;
+            line-height: 1.5;
+        }
+        .scrub-bar-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        #scrubSheetPickerWrap {
+            font-size: 12px;
+            color: var(--muted);
+        }
+        #scrubSheetPickerWrap select {
+            background: var(--panel2);
+            color: var(--text);
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            padding: 4px 6px;
+            font-size: 12px;
+        }
+        #scrubFilePill .dot { background: var(--amber); }
+
         .filter-rail {
             background: var(--panel);
             border: 1px solid var(--line);
@@ -659,23 +723,7 @@
             display: grid;
             grid-template-columns: 1.3fr 1fr;
             gap: 14px;
-        }
-        /* Reason & Trend Signals: force the 4 boxes to equal width/height */
-        .grid2-even {
-            grid-template-columns: 1fr 1fr;
-            align-items: stretch;
-        }
-        .panel-eq {
-            display: flex;
-            flex-direction: column;
-            min-height: 320px;
-        }
-        .panel-eq canvas {
-            flex: 1 1 auto;
-        }
-        .panel-eq .footnote {
-            margin-top: auto;
-            padding-top: 8px;
+            align-items: start;
         }
         .grid3 {
             display: grid;
@@ -747,6 +795,22 @@
             max-width: 100% !important;
             max-height: 230px !important;
             width: 100% !important;
+        }
+        /* l1/l3/agent charts are horizontal bar charts whose height needs
+           to grow with the number of categories, or Chart.js auto-skips
+           every other y-axis label to avoid overlap (looks like missing
+           names). JS sets this wrapper's height per render; the canvas
+           inside is exempted from the global 230px cap so it can fill it. */
+        .chart-canvas-wrap {
+            position: relative;
+            width: 100%;
+            height: 230px;
+            max-height: 640px;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+        .chart-canvas-wrap canvas {
+            max-height: none !important;
         }
 
         #heatmapPanel .hm-scroll {
@@ -1141,6 +1205,76 @@
                 padding: 20px 18px;
             }
         }
+        /* ===== Local backup / offline-fallback UI ===== */
+        #offlineEntry {
+            width: 100%;
+            max-width: 340px;
+            margin-top: 10px;
+            padding: 12px 14px;
+            border: 1px dashed var(--line);
+            border-radius: 10px;
+            background: var(--panel2);
+            display: none;
+            flex-direction: column;
+            gap: 8px;
+            text-align: left;
+        }
+        #offlineEntry.show { display: flex; }
+        #offlineEntry p {
+            margin: 0;
+            font-size: 12px;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+        #offlineEntry button {
+            background: transparent;
+            border: 1px solid var(--info);
+            color: var(--info);
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 12.5px;
+            font-weight: 600;
+        }
+        #offlineEntry button:hover { background: rgba(91,156,255,.1); }
+        #localModeBanner {
+            display: none;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            margin-bottom: 14px;
+            border-radius: 10px;
+            background: var(--signal-dim);
+            border: 1px solid #5a3226;
+            color: var(--text);
+            font-size: 12.5px;
+        }
+        #localModeBanner.show { display: flex; }
+        #localModeBanner .lmb-ico { font-size: 15px; flex-shrink: 0; }
+        #localModeBanner .lmb-text { flex: 1; line-height: 1.5; }
+        #localModeBanner .lmb-text b { color: var(--amber); }
+        #localModeBanner button {
+            background: transparent;
+            border: 1px solid var(--line);
+            color: var(--text);
+            border-radius: 7px;
+            padding: 6px 10px;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+        #localModeBanner button:hover { border-color: var(--info); color: var(--info); }
+        #localModeBanner .lmb-close {
+            border: none;
+            padding: 4px 6px;
+            color: var(--muted);
+            font-size: 15px;
+        }
+        #localBackupPill {
+            display: none;
+            align-items: center;
+            gap: 6px;
+        }
+        #localBackupPill.show { display: inline-flex; }
+        #localBackupPill .dot { background: var(--amber); }
     </style>
 </head>
 <body>
@@ -1156,6 +1290,11 @@
             <button type="submit" class="btn primary" id="loginBtn" style="justify-content:center;">Sign in</button>
             <div id="loginError"></div>
         </form>
+        <div id="offlineEntry">
+            <p><b style="color:var(--amber);">Firebase unreachable or over its free-tier limit?</b> If you've uploaded a file on this device before, you can still view it without signing in.</p>
+            <button type="button" id="viewOfflineBtn">View last saved data offline</button>
+            <p id="offlineEntryMeta" style="font-size:11px;"></p>
+        </div>
     </div>
 
     <div class="wrap" id="appWrap" style="display:none;">
@@ -1171,10 +1310,8 @@
             </div>
             <div class="top-actions">
                 <span class="pill" id="recordPill"><span class="dot"></span><span id="recordPillTxt">No file loaded</span></span>
-                <div class="toggles" id="dataSourceToggle" style="display:none;">
-                    <button type="button" id="rawDataBtn" class="on">Raw Data</button>
-                    <button type="button" id="scrubDataBtn">Scrub Data</button>
-                </div>
+                <span class="pill" id="localBackupPill" title="A local backup of your data is cached in this browser. Click to clear it."><span class="dot"></span><span id="localBackupPillTxt">Local backup saved</span></span>
+                <button class="btn ghost" id="clearLocalBackupBtn" style="display:none;" title="Clear the local backup cached in this browser">Clear local backup</button>
                 <button class="btn ghost" id="resetFiltersBtn" style="display:none;">Reset filters</button>
                 <button class="btn" id="exportBtn" style="display:none;">Export CSV</button>
                 <button class="btn primary" id="saveFirebaseBtn" style="display:none;">
@@ -1183,9 +1320,16 @@
                 </button>
                 <button class="btn" id="newFileBtn" style="display:none;">Load new file</button>
                 <span class="pill" id="userPill" style="display:none;"><span class="dot"></span><span id="userPillTxt"></span></span>
-                <button class="btn ghost" id="logoutBtn">Sign out</button>
+                <button class="btn ghost" id="logoutBtn" style="display:none;">Sign out</button>
             </div>
         </header>
+
+        <div id="localModeBanner">
+            <span class="lmb-ico">⚠️</span>
+            <span class="lmb-text" id="localModeBannerText"></span>
+            <button type="button" id="retryFirebaseBtn">Reconnect to Firebase</button>
+            <button type="button" class="lmb-close" id="closeLocalBannerBtn">✕</button>
+        </div>
 
         <!-- ===== UPLOAD STAGE ===== -->
         <div id="uploadStage">
@@ -1193,7 +1337,7 @@
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8593AC" stroke-width="1.6"><path d="M12 3v12m0-12l-4 4m4-4l4 4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
             </div>
             <h2>Drop in your QA export</h2>
-            <p>Drag an .xlsx / .xls / .csv file here, or browse. If your workbook has separate "Raw Data" and "Scrub Data" sheets, both are loaded automatically — the dashboard opens on Raw Data, and you can switch to Scrub Data with the toggle in the header. The data will be displayed in the dashboard and can be saved to Firebase Firestore. Expected columns include Week, Submit Time, Agent Name, L1/L3 Reason Code, Dissat Trigger, Correct RC tagging, Evaluator, etc.</p>
+            <p>Drag an .xlsx / .xls / .csv file here, or browse. The data will be displayed in the dashboard and can be saved to Firebase Firestore. Expected columns include Week, Submit Time, Agent Name, L1/L3 Reason Code, Dissat Trigger, Correct RC tagging, Evaluator, etc.</p>
             <div class="upload-actions">
                 <button class="btn primary" id="browseBtn">Choose file</button>
                 <button class="btn" id="sampleBtn">Load sample data</button>
@@ -1206,6 +1350,22 @@
         <!-- ===== DASHBOARD ===== -->
         <div id="dashboard">
 
+            <!-- correlate / scrub bar -->
+            <div class="scrub-bar" id="scrubBar">
+                <div class="scrub-bar-left">
+                    <span class="lbl">Correlate a 2nd file <span class="scrub-tag">Scrub</span></span>
+                    <span class="sub">Upload another export (different columns are fine) to compare it against the data above. It's read locally and won't touch the dashboard until you click "Scrub data".</span>
+                </div>
+                <div class="scrub-bar-right">
+                    <input type="file" id="scrubFileInput" accept=".xlsx,.xls,.csv" style="display:none;" />
+                    <span id="scrubSheetPickerWrap" style="display:none;">Sheet: <select id="scrubSheetPicker"></select></span>
+                    <span class="pill" id="scrubFilePill" style="display:none;"><span class="dot"></span><span id="scrubFilePillTxt"></span></span>
+                    <button class="btn" id="scrubUploadBtn">Upload 2nd file</button>
+                    <button class="btn primary" id="scrubApplyBtn" style="display:none;">Scrub data</button>
+                    <button class="btn ghost" id="scrubClearBtn" style="display:none;">Remove</button>
+                </div>
+            </div>
+
             <!-- filter rail -->
             <div class="filter-rail">
                 <div class="rail-top">
@@ -1217,6 +1377,7 @@
                 </div>
                 <div class="slicer-grid" id="slicerGrid"></div>
             </div>
+
 
             <!-- timeline -->
             <div class="timeline-box">
@@ -1240,32 +1401,32 @@
             <div class="section-head">
                 <div><h2><span class="num">01</span> Reason &amp; Trend Signals</h2><p>Volume vs. dissat trend, and top drivers by L1/L3 reason code.</p></div>
             </div>
-            <div class="grid2 grid2-even">
-                <div class="panel panel-eq">
+            <div class="grid2">
+                <div class="panel">
                     <div class="panel-head">
-                        <h3>Cases vs. DSATs over time</h3>
+                        <h3>Surveys vs. DSAT</h3>
                         <span class="sub" id="trendSub"></span>
                     </div>
                     <canvas id="trendChart" height="230"></canvas>
                 </div>
-                <div class="panel panel-eq">
+                <div class="panel">
                     <div class="panel-head">
                         <h3>Top L1 reason codes</h3>
                         <span class="sub">click a bar to drill into L3</span>
                     </div>
-                    <canvas id="l1Chart" height="230"></canvas>
+                    <div class="chart-canvas-wrap" id="l1ChartWrap"><canvas id="l1Chart"></canvas></div>
                 </div>
             </div>
 
-            <div class="grid2 grid2-even" style="margin-top:14px;">
-                <div class="panel panel-eq">
+            <div class="grid2" style="margin-top:14px;">
+                <div class="panel">
                     <div class="panel-head">
                         <h3>L3 reason drilldown <span id="l1DrillChip"></span></h3>
                         <span class="sub">top 10 by volume</span>
                     </div>
-                    <canvas id="l3Chart" height="230"></canvas>
+                    <div class="chart-canvas-wrap" id="l3ChartWrap"><canvas id="l3Chart"></canvas></div>
                 </div>
-                <div class="panel panel-eq">
+                <div class="panel">
                     <div class="panel-head">
                         <h3>Agent risk leaderboard</h3>
                         <div class="toggles">
@@ -1273,25 +1434,28 @@
                             <button id="agentBestBtn">Lowest dissat rate</button>
                         </div>
                     </div>
-                    <canvas id="agentChart" height="230"></canvas>
-                    <div class="footnote">Min. 5 cases in range to qualify for ranking.</div>
+                    <div class="chart-canvas-wrap" id="agentChartWrap"><canvas id="agentChart"></canvas></div>
+                    <div class="footnote">Min. 5 cases in range to qualify for ranking. Hover a bar for the agent's AHT on DSAT cases.</div>
                 </div>
             </div>
 
             <div class="section-head">
-                <div><h2><span class="num">02</span> Hour × Tenure Signal Map</h2><p>Where in the day — and with which tenure cohort — issues concentrate.</p></div>
+                <div><h2><span class="num">02</span> DSAT Hour Signal</h2><p>Which hour of day DSATs are received, based on CSAT submission time.</p></div>
             </div>
             <div class="panel" id="heatmapPanel">
                 <div class="panel-head">
-                    <h3>Contact hour vs. tenure bucket</h3>
-                    <span class="sub">volume</span>
+                    <h3>DSATs by hour of day</h3>
+                    <div class="toggles">
+                        <button id="hmVolumeBtn" class="on">Volume</button>
+                        <button id="hmDissatBtn">Dissat rate</button>
+                    </div>
                 </div>
                 <div class="hm-scroll"><div id="heatmapGrid"></div></div>
             </div>
 
             <!-- Section: deep analysis -->
             <div class="section-head">
-                <div><h2><span class="num">03</span> Deep Analysis</h2><p>Auto-generated read on the filtered slice — root cause, agent scorecards, recontact correlation and tagging consistency.</p></div>
+                <div><h2><span class="num">03</span> Deep Analysis</h2><p>Auto-generated read on the filtered slice — root cause, agent scorecards and recontact patterns.</p></div>
             </div>
 
             <div class="grid2">
@@ -1322,27 +1486,22 @@
                     <div class="table-scroll">
                         <table class="datatable" id="scoreTable">
                             <thead><tr>
-                                    <th data-k="agent">Agent</th><th data-k="coach">Coach</th><th data-k="cases">Cases</th>
-                                    <th data-k="dsats">DSATs</th><th data-k="dissat">Dissat%</th><th data-k="recontact">Recontact%</th><th data-k="rc">RC Acc.%</th>
+                                    <th data-k="agent">Agent</th><th data-k="cases">Cases</th>
+                                    <th data-k="dsats">DSATs</th><th data-k="dissat">DSAT%</th>
                                 </tr></thead>
                             <tbody></tbody>
                         </table>
                     </div>
                 </div>
                 <div class="panel">
-                    <div class="panel-head"><h3>Evaluator tagging consistency</h3><span class="sub">flags &gt;10pt below team avg.</span></div>
+                    <div class="panel-head"><h3>Recontact breakdown</h3><span class="sub">basis: username</span></div>
                     <div class="table-scroll">
-                        <table class="datatable" id="evalTable">
-                            <thead><tr><th data-k="ev">Evaluator</th><th data-k="n">Cases QA'd</th><th data-k="acc">RC Accuracy%</th><th data-k="dsats">Avg DSATs</th><th data-k="flag">Flag</th></tr></thead>
+                        <table class="datatable" id="recontactTable">
+                            <thead><tr><th data-k="user">Username</th><th data-k="recontact">Recontact</th><th data-k="dsatRate">DSAT Rate</th></tr></thead>
                             <tbody></tbody>
                         </table>
                     </div>
                 </div>
-            </div>
-
-            <div class="panel" id="recontactCorrPanel" style="margin-top:14px;display:none;">
-                <div class="panel-head"><h3>Recontact correlation</h3><span class="sub">where recontacts cluster · Scrub Data only</span></div>
-                <div class="crosstab-pair" id="crosstabPair"></div>
             </div>
 
         </div> <!-- /dashboard -->
@@ -1406,6 +1565,7 @@
         // 2. STATE
         // --------------------------------------------------------------
         const state = {
+            schema: 'dsats', // 'dsats' (total.xlsx) or 'week34' (Week 34 Surveys.xlsx)
             data: [], // normalized rows (for dashboard)
             rawRows: [], // raw rows with original headers (for Firebase)
             filtered: [],
@@ -1419,30 +1579,30 @@
             rangeEnd: null,
             agentSort: 'worst',
             hmMode: 'volume',
-            sortState: { pareto: { k: 'dsats', dir: 'desc' }, score: { k: 'dsats', dir: 'desc' }, evalT: { k: 'acc',
-                    dir: 'asc' } },
+            sortState: { pareto: { k: 'dsats', dir: 'desc' }, score: { k: 'dsats', dir: 'desc' }, recontact: {
+                    k: 'recontact', dir: 'desc' } },
             charts: {},
             chartReady: false,
             isSaving: false,
             lastUploadedRows: 0,
             firebaseCollection: 'table', // collection name in Firestore
             periodFilter: { mode: 'day', day: new Set(), week: new Set(), month: new Set() },
-            scrubNormalized: null // normalized Scrub Data rows, kept alongside state.data for the Recontact correlation panel
+            // Second ("scrub") dataset for correlation — see section 6b.
+            scrubRawRows: null,
+            scrubData: null,
+            scrubApplied: false,
+            scrubFileName: null
         };
 
-        // NOTE: 'fulfilmentChannel' stays in this list (state.filterValues /
-        // baseFiltered still need it) but is flagged `nestedUnder` so it does
-        // NOT get its own top-level slicer button — its choices are rendered
-        // *inside* the Delivery Issue slicer panel instead (see
-        // buildDeliveryIssuePanel). Tenure and Evaluator slicers were removed
-        // per request.
         const SLICER_FIELDS = [
             { key: 'agentName', label: 'Agent' },
             { key: 'coach', label: 'Coach' },
+            { key: 'evaluator', label: 'Evaluator' },
             { key: 'l1Reason', label: 'L1 Reason' },
             { key: 'l3Reason', label: 'L3 Reason' },
+            { key: 'tenureBucket', label: 'Tenure' },
             { key: 'csatChannel', label: 'CSAT Channel' },
-            { key: 'fulfilmentChannel', label: 'Fulfilment Channel', nestedUnder: 'deliveryIssue' },
+            { key: 'fulfilmentChannel', label: 'Fulfilment Channel' },
             { key: 'deliveryIssue', label: 'Delivery Issue' },
             { key: 'correctRcTagging', label: 'Correct RC Tag' },
             { key: 'isRecontact', label: 'Recontact' }
@@ -1486,21 +1646,19 @@
         // --------------------------------------------------------------
         const HEADER_RULES = [
             [/^week$/i, 'week'],
+            [/csat\s*submission/i, 'submitTime'],
             [/submit\s*time/i, 'submitTime'],
-            [/^date$/i, 'submitTime'], // raw-data header's "Date" drives the same timeline/period logic as "Submit Time"
-            [/report\s*date/i, 'reportDate'],
             [/agent\s*email/i, 'agentEmail'],
-            [/^email$/i, 'userEmail'],
-            [/^username$/i, 'username'],
+            [/^email$/i, 'agentEmail'],
             [/agent\s*name/i, 'agentName'],
-            [/agent\s*skill/i, 'agentSkill'],
             [/agent\s*type/i, 'agentType'],
+            [/agent\s*skill/i, 'agentType'],
             [/case\s*id/i, 'caseId'],
             [/session\s*id/i, 'sessionId'],
             [/csat\s*channel/i, 'csatChannel'],
-            [/survey\s*channel/i, 'csatChannel'], // raw-data header's "Survey Channel" is the same concept as CSAT Channel
+            [/survey\s*channel/i, 'csatChannel'],
             [/csat\s*level/i, 'csatLevel'],
-            [/csat\s*submission/i, 'csatSubmission'],
+            [/^username$/i, 'username'],
             [/handle\s*time/i, 'handleTime'],
             [/l1.*reason/i, 'l1Reason'],
             [/l3.*reason/i, 'l3Reason'],
@@ -1528,19 +1686,12 @@
         const CANON_LABEL = {
             week: 'Week',
             submitTime: 'Submit Time',
-            reportDate: 'Report Date',
             agentEmail: 'Agent Email',
-            userEmail: 'Email',
-            username: 'Username',
             agentName: 'Agent Name',
-            agentSkill: 'Agent Skill',
             agentType: 'Agent Type',
             caseId: 'Case ID',
             sessionId: 'Session ID',
             csatChannel: 'CSAT Channel',
-            csatLevel: 'CSAT Level',
-            csatSubmission: 'CSAT Submission',
-            handleTime: 'Handle Time',
             l1Reason: 'L1 Reason Code Name',
             l3Reason: 'L3 Reason Code Name',
             hr: 'Hr',
@@ -1562,7 +1713,10 @@
             numRecontact: 'No. of Recontact',
             numDsats: 'No. of DSATs',
             otherRemarks: 'Other remarks',
-            evaluator: 'EVALUATOR'
+            evaluator: 'EVALUATOR',
+            csatLevel: 'CSAT Level',
+            username: 'Username',
+            handleTime: 'Handle Time'
         };
 
         function canonicalKeyFor(header) {
@@ -1580,7 +1734,18 @@
                 const d = XLSX.SSF ? XLSX.SSF.parse_date_code(v) : null;
                 if (d) return new Date(Date.UTC(d.y, d.m - 1, d.d, d.H || 0, d.M || 0, Math.floor(d.S || 0)));
             }
-            const d2 = new Date(v);
+            let s = String(v).trim();
+            // Normalize odd unicode spaces (narrow no-break space etc.) some exports use.
+            s = s.replace(/[\u00A0\u202F\u2009\u2007]/g, ' ').replace(/\s+/g, ' ').trim();
+            // Some Submit Time exports look like "12:47:49 AM / Friday, May 1, 2026" —
+            // JS can't parse that order directly, so flip it to "<date> <time>".
+            const slashMatch = s.match(/^(.*?)\s*\/\s*(.*)$/);
+            if (slashMatch) {
+                const combined = slashMatch[2].trim() + ' ' + slashMatch[1].trim();
+                const d3 = new Date(combined);
+                if (!isNaN(d3)) return d3;
+            }
+            const d2 = new Date(s);
             return isNaN(d2) ? null : d2;
         }
 
@@ -1631,44 +1796,20 @@
                 const weekStr = (row.week !== undefined && row.week !== null && row.week !== '') ? String(row.week)
                     .trim() : null;
                 const weekNumMatch = weekStr ? weekStr.match(/\d+/) : null;
-
-                // Raw-data fallback: the raw header has no "No. of DSATs"
-                // column, so when it's missing we derive it from CSAT Level
-                // instead. ASSUMPTION — please confirm/adjust in
-                // normalizeRows() if your CSAT Level scale differs: a
-                // numeric level of 1–2 (on a 1–5 scale), or level text
-                // containing "dissat"/"unsatisf", counts as one DSAT.
-                let numDsats = parseFloat(row.numDsats);
-                if (isNaN(numDsats)) {
-                    const lvlNum = parseFloat(row.csatLevel);
-                    const lvlText = String(row.csatLevel || '').toLowerCase();
-                    if (!isNaN(lvlNum) && lvlNum > 0 && lvlNum <= 2) numDsats = 1;
-                    else if (/dissat|unsatisf/.test(lvlText)) numDsats = 1;
-                    else numDsats = 0;
-                }
-
                 return {
                     week: weekStr,
                     weekSortKey: weekNumMatch ? parseInt(weekNumMatch[0], 10) : (weekStr || ''),
                     submitTime,
-                    reportDate: parseDateVal(row.reportDate),
                     dateStr: submitTime ? fmtDate(submitTime) : null,
                     dateLabel: submitTime ? fmtDateLong(submitTime) : null,
                     monthKey: submitTime ? fmtMonthKey(submitTime) : null,
                     monthLabel: submitTime ? fmtMonthLabel(submitTime) : null,
                     agentEmail: (row.agentEmail || '').toString().trim(),
-                    userEmail: (row.userEmail || '').toString().trim(),
-                    username: (row.username || '').toString().trim(),
                     agentName: (row.agentName || 'Unknown').toString().trim() || 'Unknown',
-                    agentSkill: (row.agentSkill || '').toString().trim(),
                     agentType: (row.agentType || '').toString().trim(),
                     caseId: (row.caseId || '').toString().trim(),
                     sessionId: (row.sessionId || '').toString().trim(),
                     csatChannel: (row.csatChannel || 'Unspecified').toString().trim() || 'Unspecified',
-                    csatLevel: (row.csatLevel !== undefined && row.csatLevel !== '') ? row.csatLevel : null,
-                    csatSubmission: (row.csatSubmission || '').toString().trim(),
-                    handleTime: (row.handleTime !== undefined && row.handleTime !== '' && !isNaN(parseFloat(row
-                        .handleTime))) ? parseFloat(row.handleTime) : null,
                     l1Reason: (row.l1Reason || 'Unspecified').toString().trim() || 'Unspecified',
                     l3Reason: (row.l3Reason || 'Unspecified').toString().trim() || 'Unspecified',
                     hr: (row.hr !== undefined && row.hr !== '' && !isNaN(parseInt(row.hr))) ? (parseInt(row.hr) %
@@ -1689,11 +1830,48 @@
                     usn: (row.usn || '').toString().trim(),
                     isRecontact: toBoolTri(row.isRecontact),
                     numRecontact: parseFloat(row.numRecontact) || 0,
-                    numDsats,
+                    numDsats: parseFloat(row.numDsats) || 0,
                     otherRemarks: (row.otherRemarks || '').toString(),
-                    evaluator: (row.evaluator || 'Unassigned').toString().trim() || 'Unassigned'
+                    evaluator: (row.evaluator || 'Unassigned').toString().trim() || 'Unassigned',
+                    csatLevel: (row.csatLevel || '').toString().trim(),
+                    username: (row.username || '').toString().trim(),
+                    handleTime: (row.handleTime !== undefined && row.handleTime !== '' && !isNaN(parseFloat(
+                        row.handleTime))) ? parseFloat(row.handleTime) : null,
+                    contactUsername: ((row.username || row.usn || '')).toString().trim()
                 };
             });
+        }
+
+        // Detects which of the two supported export formats a set of raw
+        // rows came from. 'week34' = per-survey export with a CSAT Level
+        // column (Good/Bad) and a Username column, covering ALL surveys.
+        // 'dsats' = the original per-DSAT-case export (total.xlsx).
+        function detectSchema(rawRows) {
+            const headers = rawRows.length ? Object.keys(rawRows[0]) : [];
+            const has = re => headers.some(h => re.test(String(h).trim()));
+            if (has(/csat\s*level/i) && has(/^username$/i)) return 'week34';
+            return 'dsats';
+        }
+
+        // A row counts as a DSAT differently depending on the source format:
+        // - week34: one row per survey: it's a DSAT when CSAT Level is 'Bad'.
+        // - dsats: every row is a logged DSAT case; use the numDsats/dissatTrigger
+        //   fields already present in that export.
+        function isDsatRow(r) {
+            return state.schema === 'week34' ? r.csatLevel.toLowerCase() === 'bad' : (r.numDsats > 0 || !!r
+                .dissatTrigger);
+        }
+
+        function dsatVal(r) {
+            return state.schema === 'week34' ? (r.csatLevel.toLowerCase() === 'bad' ? 1 : 0) : r.numDsats;
+        }
+
+        function fmtHandleTime(secs) {
+            if (secs === null || secs === undefined || isNaN(secs)) return '—';
+            const s = Math.round(secs);
+            const m = Math.floor(s / 60);
+            const r = s % 60;
+            return m + ':' + (r < 10 ? '0' + r : r);
         }
 
         // --------------------------------------------------------------
@@ -1793,15 +1971,7 @@
         const sheetPickerWrap = document.getElementById('sheetPickerWrap');
         const sheetPicker = document.getElementById('sheetPicker');
         const uploadError = document.getElementById('uploadError');
-        const dataSourceToggle = document.getElementById('dataSourceToggle');
-        const rawDataBtn = document.getElementById('rawDataBtn');
-        const scrubDataBtn = document.getElementById('scrubDataBtn');
         let lastWorkbook = null;
-        // Parsed rows for each of the two known sheets, kept in memory so
-        // switching the Raw/Scrub toggle is instant (no re-parsing).
-        let rawSheetRows = null;
-        let scrubSheetRows = null;
-        let activeDataSource = 'raw';
 
         browseBtn.addEventListener('click', () => fileInput.click());
         fileInput.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
@@ -1815,38 +1985,13 @@
 
         function handleFile(file) {
             uploadError.style.display = 'none';
+            state.lastFileName = file.name;
             const reader = new FileReader();
             reader.onload = evt => {
                 try {
                     const data = new Uint8Array(evt.target.result);
                     const wb = XLSX.read(data, { type: 'array', cellDates: true });
                     lastWorkbook = wb;
-                    rawSheetRows = null;
-                    scrubSheetRows = null;
-
-                    // Look for dedicated "Raw Data" / "Scrub Data" sheets by
-                    // name (case-insensitive, substring match) first — that's
-                    // the one-file-two-sheets workflow this dashboard expects.
-                    const rawName = wb.SheetNames.find(n => /raw/i.test(n));
-                    const scrubName = wb.SheetNames.find(n => /scrub/i.test(n));
-
-                    if (rawName && scrubName) {
-                        sheetPickerWrap.style.display = 'none';
-                        rawSheetRows = XLSX.utils.sheet_to_json(wb.Sheets[rawName], { defval: '' });
-                        scrubSheetRows = XLSX.utils.sheet_to_json(wb.Sheets[scrubName], { defval: '' });
-                        if (!rawSheetRows.length) { showUploadError('The Raw Data sheet has no data rows.'); return; }
-                        state.scrubNormalized = scrubSheetRows.length ? normalizeRows(scrubSheetRows) : null;
-                        activeDataSource = 'raw';
-                        dataSourceToggle.style.display = 'flex';
-                        updateDataSourceButtons();
-                        bootFromRawRows(rawSheetRows);
-                        return;
-                    }
-
-                    // Fallback: no Raw/Scrub-named pair found — behave as
-                    // before, with a generic sheet picker for any workbook.
-                    state.scrubNormalized = null;
-                    dataSourceToggle.style.display = 'none';
                     if (wb.SheetNames.length > 1) {
                         sheetPickerWrap.style.display = 'block';
                         sheetPicker.innerHTML = wb.SheetNames.map(n => '<option value="' + n + '">' + n +
@@ -1872,24 +2017,6 @@
             bootFromRawRows(rawRows);
         }
 
-        function updateDataSourceButtons() {
-            rawDataBtn.classList.toggle('on', activeDataSource === 'raw');
-            scrubDataBtn.classList.toggle('on', activeDataSource === 'scrub');
-        }
-
-        rawDataBtn.addEventListener('click', () => {
-            if (activeDataSource === 'raw' || !rawSheetRows) return;
-            activeDataSource = 'raw';
-            updateDataSourceButtons();
-            bootFromRawRows(rawSheetRows);
-        });
-        scrubDataBtn.addEventListener('click', () => {
-            if (activeDataSource === 'scrub' || !scrubSheetRows) return;
-            activeDataSource = 'scrub';
-            updateDataSourceButtons();
-            bootFromRawRows(scrubSheetRows);
-        });
-
         function showUploadError(msg) {
             uploadError.textContent = msg;
             uploadError.style.display = 'block';
@@ -1900,19 +2027,17 @@
         // --------------------------------------------------------------
         function bootFromRawRows(rawRows) {
             state.rawRows = rawRows;
+            state.schema = detectSchema(rawRows);
             const normalized = normalizeRows(rawRows);
             state.data = normalized;
             state.lastUploadedRows = normalized.length;
 
-            // Legacy single-sheet uploads (no dedicated Raw/Scrub sheet pair
-            // detected): if THIS sheet itself already carries EDD/GDT status
-            // data, treat it as the Scrub basis too, same as the old
-            // single-file behaviour.
-            if (!state.scrubNormalized) {
-                const looksLikeScrub = normalized.some(r => r.eddStatus !== 'Unspecified' || r.gdtStatus !==
-                    'Unspecified');
-                if (looksLikeScrub) state.scrubNormalized = normalized;
-            }
+            // Mirror whatever is now on screen into the local IndexedDB
+            // backup, so it can still be viewed later if Firebase's free
+            // tier limit is reached. This runs for every source (upload,
+            // sample data, a fresh Firestore load, or the backup itself)
+            // so the cache always reflects the most recent good data.
+            saveLocalBackup(rawRows, { fileName: state.lastFileName });
 
             const mappedCount = Object.keys(CANON_LABEL).filter(k => normalized.some(r => r[k] !== undefined && r[k] !==
                 null && r[k] !== '')).length;
@@ -1936,11 +2061,105 @@
             document.getElementById('uploadStage').style.display = 'block';
             fileInput.value = '';
             document.getElementById('saveFirebaseBtn').style.display = 'none';
-            dataSourceToggle.style.display = 'none';
-            rawSheetRows = null;
-            scrubSheetRows = null;
-            state.scrubNormalized = null;
+            clearScrubData();
         });
+
+        // --------------------------------------------------------------
+        // 6b. SECOND FILE — "SCRUB" DATASET FOR CORRELATION
+        // --------------------------------------------------------------
+        // A second export (different headers/schema are fine — the same
+        // flexible HEADER_RULES mapping used for the primary file applies
+        // here too) can be loaded alongside the primary dataset. It is
+        // read and normalized locally but is NOT merged into state.data /
+        // state.rawRows and does not touch the primary dashboard — KPIs,
+        // recontact correlation, agent scorecard, filters, etc. all keep
+        // working exactly as before — until the user explicitly presses
+        // "Scrub data". Only then do the trend, L1 and L3 charts add the
+        // scrub file as an extra series/bar for comparison.
+        let scrubWorkbook = null;
+        const scrubFileInput = document.getElementById('scrubFileInput');
+        const scrubUploadBtn = document.getElementById('scrubUploadBtn');
+        const scrubApplyBtn = document.getElementById('scrubApplyBtn');
+        const scrubClearBtn = document.getElementById('scrubClearBtn');
+        const scrubFilePill = document.getElementById('scrubFilePill');
+        const scrubFilePillTxt = document.getElementById('scrubFilePillTxt');
+        const scrubSheetPickerWrap = document.getElementById('scrubSheetPickerWrap');
+        const scrubSheetPicker = document.getElementById('scrubSheetPicker');
+
+        scrubUploadBtn.addEventListener('click', () => scrubFileInput.click());
+        scrubFileInput.addEventListener('change', e => { if (e.target.files[0]) handleScrubFile(e.target.files[0]); });
+
+        function handleScrubFile(file) {
+            state.scrubFileName = file.name;
+            const reader = new FileReader();
+            reader.onload = evt => {
+                try {
+                    const data = new Uint8Array(evt.target.result);
+                    const wb = XLSX.read(data, { type: 'array', cellDates: true });
+                    scrubWorkbook = wb;
+                    if (wb.SheetNames.length > 1) {
+                        scrubSheetPickerWrap.style.display = 'inline-flex';
+                        scrubSheetPicker.innerHTML = wb.SheetNames.map(n => '<option value="' + n + '">' + n +
+                            '</option>').join('');
+                        scrubSheetPicker.onchange = () => loadScrubSheet(wb, scrubSheetPicker.value);
+                    } else {
+                        scrubSheetPickerWrap.style.display = 'none';
+                    }
+                    loadScrubSheet(wb, wb.SheetNames[0]);
+                } catch (err) {
+                    showSaveStatus('❌', 'Could not read the second file: ' + err.message, true);
+                }
+            };
+            reader.onerror = () => showSaveStatus('❌', 'Failed to read the second file.', true);
+            reader.readAsArrayBuffer(file);
+        }
+
+        function loadScrubSheet(wb, name) {
+            const sheet = wb.Sheets[name];
+            const rawRows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+            if (!rawRows.length) {
+                showSaveStatus('⚠️', 'That sheet in the second file has no data rows — pick a different sheet above.', true);
+                return;
+            }
+            state.scrubRawRows = rawRows;
+            state.scrubSchema = detectSchema(rawRows);
+            state.scrubData = normalizeRows(rawRows);
+            state.scrubApplied = false; // require an explicit "Scrub data" click for each newly (re)loaded file
+            scrubFilePill.style.display = 'inline-flex';
+            scrubFilePillTxt.textContent = (state.scrubFileName || 'Second file') + ' · ' + rawRows.length
+                .toLocaleString() + ' rows · not yet scrubbed';
+            scrubApplyBtn.style.display = 'inline-flex';
+            scrubApplyBtn.textContent = 'Scrub data';
+            scrubClearBtn.style.display = 'inline-flex';
+            // In case a previous scrub was applied, re-render so the charts
+            // drop back to primary-only until the new file is scrubbed too.
+            render();
+        }
+
+        scrubApplyBtn.addEventListener('click', () => {
+            if (!state.scrubData || !state.scrubData.length) return;
+            state.scrubApplied = true;
+            scrubFilePillTxt.textContent = (state.scrubFileName || 'Second file') + ' · ' + state.scrubData.length
+                .toLocaleString() + ' rows · correlated as "Scrub"';
+            scrubApplyBtn.textContent = 'Re-scrub';
+            render();
+        });
+
+        scrubClearBtn.addEventListener('click', clearScrubData);
+
+        function clearScrubData() {
+            state.scrubRawRows = null;
+            state.scrubData = null;
+            state.scrubApplied = false;
+            state.scrubFileName = null;
+            scrubWorkbook = null;
+            scrubFileInput.value = '';
+            scrubFilePill.style.display = 'none';
+            scrubApplyBtn.style.display = 'none';
+            scrubClearBtn.style.display = 'none';
+            scrubSheetPickerWrap.style.display = 'none';
+            if (state.data.length) render();
+        }
 
         // --------------------------------------------------------------
         // 7. SAVE TO FIREBASE
@@ -1979,7 +2198,12 @@
                 showSaveStatus('✅', 'Successfully saved ' + state.rawRows.length + ' rows to Firebase!');
             } catch (err) {
                 console.error('Firebase save error:', err);
-                showSaveStatus('❌', 'Error saving: ' + (err.message || 'unknown error'), true);
+                if (isFirebaseLimitError(err)) {
+                    await saveLocalBackup(state.rawRows, { fileName: state.lastFileName });
+                    showSaveStatus('⚠️', "Firebase's free write limit seems to be reached, so this couldn't be saved to the cloud. It's still kept locally in this browser, so you can keep viewing it — just re-upload it if you switch devices or clear browser data, and try saving to Firebase again once the limit resets.", true);
+                } else {
+                    showSaveStatus('❌', 'Error saving: ' + (err.message || 'unknown error'), true);
+                }
             } finally {
                 state.isSaving = false;
                 saveBtn.disabled = false;
@@ -2038,23 +2262,247 @@
                 });
 
                 if (results.length) {
+                    state.dataSource = 'firebase';
                     bootFromRawRows(results);
+                    hideLocalModeBanner();
                     showSaveStatus('✅', 'Loaded ' + results.length + ' rows from Firebase.');
                 } else {
                     hideSaveStatus();
                 }
             } catch (err) {
                 console.error('Error auto-loading data:', err);
-                showSaveStatus('❌', 'Error loading data: ' + (err.message || 'unknown error'), true);
+                if (isFirebaseLimitError(err)) {
+                    const usedFallback = await tryEnterLocalFallback('Firebase read limit reached, so live data could not be loaded.');
+                    if (!usedFallback) {
+                        showSaveStatus('❌', "Firebase's free read/write limit seems to be reached, and there's no local backup saved in this browser yet. Upload a file below to keep working — it will be cached locally so you can view it even if this happens again.", true);
+                    }
+                } else {
+                    showSaveStatus('❌', 'Error loading data: ' + (err.message || 'unknown error'), true);
+                }
             }
         }
+
+        // --------------------------------------------------------------
+        // 8b. LOCAL BACKUP CACHE — Firebase free-tier fallback
+        // --------------------------------------------------------------
+        // Firebase's Spark (free) plan caps daily Firestore reads/writes.
+        // Once that cap is hit, Firestore starts rejecting requests until
+        // it resets. To make sure you can still SEE your data in the
+        // meantime, every file that gets loaded into the dashboard (via
+        // upload, sample data, or a successful Firestore load) is also
+        // mirrored into this browser's IndexedDB. If Firestore then fails
+        // with a quota/limit-type error, we transparently fall back to
+        // that local copy instead of leaving the dashboard empty.
+        // This is a per-browser, per-device cache only — it is not a
+        // substitute for Firebase and is cleared if the user clears their
+        // browser storage.
+        const LOCAL_DB_NAME = 'qaDashboardLocalCache';
+        const LOCAL_DB_VERSION = 1;
+        const LOCAL_STORE = 'backups';
+        const LOCAL_KEY = 'lastUpload';
+
+        function openLocalCacheDB() {
+            return new Promise((resolve, reject) => {
+                if (!('indexedDB' in window)) { reject(new Error('IndexedDB is not supported in this browser.')); return; }
+                const req = indexedDB.open(LOCAL_DB_NAME, LOCAL_DB_VERSION);
+                req.onupgradeneeded = () => {
+                    const idb = req.result;
+                    if (!idb.objectStoreNames.contains(LOCAL_STORE)) idb.createObjectStore(LOCAL_STORE);
+                };
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error || new Error('Could not open local cache.'));
+            });
+        }
+
+        function dateReplacer(row) {
+            const out = {};
+            for (const k in row) {
+                out[k] = (row[k] instanceof Date) ? { __isDate: true, iso: row[k].toISOString() } : row[k];
+            }
+            return out;
+        }
+
+        function dateReviver(row) {
+            const out = {};
+            for (const k in row) {
+                const v = row[k];
+                out[k] = (v && typeof v === 'object' && v.__isDate) ? new Date(v.iso) : v;
+            }
+            return out;
+        }
+
+        // Saves the current raw rows to IndexedDB so they can be viewed later
+        // even if Firebase is unreachable or over its free-tier limit.
+        // Fire-and-forget: failures here should never block the dashboard.
+        async function saveLocalBackup(rawRows, meta) {
+            if (!rawRows || !rawRows.length) return;
+            try {
+                const idb = await openLocalCacheDB();
+                const payload = {
+                    rows: rawRows.map(dateReplacer),
+                    savedAt: Date.now(),
+                    rowCount: rawRows.length,
+                    fileName: (meta && meta.fileName) || null
+                };
+                await new Promise((resolve, reject) => {
+                    const tx = idb.transaction(LOCAL_STORE, 'readwrite');
+                    tx.objectStore(LOCAL_STORE).put(payload, LOCAL_KEY);
+                    tx.oncomplete = resolve;
+                    tx.onerror = () => reject(tx.error);
+                });
+                idb.close();
+                updateLocalBackupUI(payload);
+            } catch (err) {
+                console.warn('Local backup save skipped:', err.message);
+            }
+        }
+
+        async function loadLocalBackup() {
+            try {
+                const idb = await openLocalCacheDB();
+                const payload = await new Promise((resolve, reject) => {
+                    const tx = idb.transaction(LOCAL_STORE, 'readonly');
+                    const req = tx.objectStore(LOCAL_STORE).get(LOCAL_KEY);
+                    req.onsuccess = () => resolve(req.result || null);
+                    req.onerror = () => reject(req.error);
+                });
+                idb.close();
+                if (!payload) return null;
+                return {
+                    rows: payload.rows.map(dateReviver),
+                    savedAt: payload.savedAt,
+                    rowCount: payload.rowCount,
+                    fileName: payload.fileName
+                };
+            } catch (err) {
+                console.warn('Local backup load failed:', err.message);
+                return null;
+            }
+        }
+
+        async function clearLocalBackup() {
+            try {
+                const idb = await openLocalCacheDB();
+                await new Promise((resolve, reject) => {
+                    const tx = idb.transaction(LOCAL_STORE, 'readwrite');
+                    tx.objectStore(LOCAL_STORE).delete(LOCAL_KEY);
+                    tx.oncomplete = resolve;
+                    tx.onerror = () => reject(tx.error);
+                });
+                idb.close();
+            } catch (err) {
+                console.warn('Local backup clear failed:', err.message);
+            }
+            updateLocalBackupUI(null);
+        }
+
+        function relativeTime(ts) {
+            const diffMs = Date.now() - ts;
+            const mins = Math.round(diffMs / 60000);
+            if (mins < 1) return 'just now';
+            if (mins < 60) return mins + ' min ago';
+            const hrs = Math.round(mins / 60);
+            if (hrs < 24) return hrs + ' hr ago';
+            const days = Math.round(hrs / 24);
+            return days + ' day' + (days === 1 ? '' : 's') + ' ago';
+        }
+
+        // Updates the small "Local backup saved" pill in the header and the
+        // offline-entry hint on the sign-in screen.
+        function updateLocalBackupUI(payload) {
+            const pill = document.getElementById('localBackupPill');
+            const pillTxt = document.getElementById('localBackupPillTxt');
+            const clearBtn = document.getElementById('clearLocalBackupBtn');
+            const entry = document.getElementById('offlineEntry');
+            const entryMeta = document.getElementById('offlineEntryMeta');
+            if (payload) {
+                pill.classList.add('show');
+                pillTxt.textContent = 'Local backup · ' + payload.rowCount.toLocaleString() + ' rows · ' + relativeTime(payload.savedAt);
+                clearBtn.style.display = 'inline-flex';
+                entry.classList.add('show');
+                entryMeta.textContent = 'Saved ' + payload.rowCount.toLocaleString() + ' rows, ' + relativeTime(payload.savedAt) + '.';
+            } else {
+                pill.classList.remove('show');
+                clearBtn.style.display = 'none';
+                entry.classList.remove('show');
+            }
+        }
+
+        // Checks IndexedDB on page load so the "view offline" option on the
+        // sign-in screen and the header pill are correct from the start.
+        async function refreshLocalBackupIndicator() {
+            const backup = await loadLocalBackup();
+            updateLocalBackupUI(backup);
+            return backup;
+        }
+
+        // Detects Firestore/Firebase errors that indicate the free-tier
+        // quota (reads, writes, or bandwidth) has been reached, as opposed
+        // to e.g. a bad query or a permissions bug.
+        function isFirebaseLimitError(err) {
+            if (!err) return false;
+            const code = (err.code || '').toLowerCase();
+            const msg = (err.message || '').toLowerCase();
+            return code === 'resource-exhausted' ||
+                code === 'unavailable' ||
+                /resource[-_ ]exhausted|quota|exceeded|too many requests|limit/.test(msg);
+        }
+
+        function showLocalModeBanner(reason, backup) {
+            const banner = document.getElementById('localModeBanner');
+            const text = document.getElementById('localModeBannerText');
+            const savedWhen = backup ? relativeTime(backup.savedAt) : 'earlier';
+            text.innerHTML = '<b>' + escapeHtml(reason) + '</b> Showing a local backup saved in this browser ' +
+                savedWhen + ' (' + (backup ? backup.rowCount.toLocaleString() : '0') +
+                ' rows). This copy may be out of date — it is not live Firebase data.';
+            banner.classList.add('show');
+        }
+
+        function hideLocalModeBanner() {
+            document.getElementById('localModeBanner').classList.remove('show');
+        }
+
+        // Attempts to load the local backup and boot the dashboard from it.
+        // Returns true if a backup was found and loaded, false otherwise.
+        async function tryEnterLocalFallback(reason) {
+            const backup = await loadLocalBackup();
+            if (!backup || !backup.rows.length) return false;
+            state.dataSource = 'local-backup';
+            bootFromRawRows(backup.rows);
+            showLocalModeBanner(reason, backup);
+            showSaveStatus('⚠️', reason + ' Showing your last locally-saved data instead.', true);
+            return true;
+        }
+
+        document.getElementById('retryFirebaseBtn').addEventListener('click', async () => {
+            hideLocalModeBanner();
+            state.offlineMode = false;
+            showSaveStatus('⏳', 'Reconnecting to Firebase…');
+            await loadAllData();
+        });
+        document.getElementById('closeLocalBannerBtn').addEventListener('click', hideLocalModeBanner);
+
+        document.getElementById('clearLocalBackupBtn').addEventListener('click', async () => {
+            if (!confirm('Clear the local backup cached in this browser? You will lose the ability to view it offline if Firebase becomes unreachable.')) return;
+            await clearLocalBackup();
+        });
 
         // --------------------------------------------------------------
         // 9. SLICERS
         // --------------------------------------------------------------
         function initFilters() {
             SLICER_FIELDS.forEach(f => state.filterValues[f.key] = new Set());
-            state.periodFilter = { mode: 'day', day: new Set(), week: new Set(), month: new Set() };
+            state.periodFilter = { mode: 'week', day: new Set(), week: new Set(), month: new Set() };
+            // Default to the most recent week only — the user can still
+            // multi-select additional weeks from the Week slicer panel.
+            let latestWeek = null,
+                latestSort = -Infinity;
+            state.data.forEach(r => {
+                if (r.week === null || r.week === undefined || r.week === '') return;
+                if (r.weekSortKey > latestSort) { latestSort = r.weekSortKey;
+                    latestWeek = r.week; }
+            });
+            if (latestWeek !== null) state.periodFilter.week.add(latestWeek);
             const grid = document.getElementById('slicerGrid');
             grid.innerHTML = '';
 
@@ -2073,7 +2521,7 @@
                     buildPeriodPanel(); }
             });
 
-            SLICER_FIELDS.filter(f => !f.nestedUnder).forEach(f => {
+            SLICER_FIELDS.forEach(f => {
                 const wrap = document.createElement('div');
                 wrap.className = 'slicer';
                 wrap.dataset.field = f.key;
@@ -2127,7 +2575,6 @@
         }
 
         function buildSlicerPanel(f) {
-            if (f.key === 'deliveryIssue') return buildDeliveryIssuePanel(f);
             const wrap = document.querySelector('.slicer[data-field="' + f.key + '"]');
             const panel = wrap.querySelector('.slicer-panel');
             const opts = fieldValueCounts(f.key, f.key);
@@ -2173,110 +2620,11 @@
 
         function updateSlicerButtonState(f) {
             const wrap = document.querySelector('.slicer[data-field="' + f.key + '"]');
-            let n = state.filterValues[f.key].size;
-            // Delivery Issue's badge also reflects any nested Fulfilment
-            // Channel picks, since those live inside its panel now.
-            if (f.key === 'deliveryIssue') n += state.filterValues.fulfilmentChannel.size;
+            const n = state.filterValues[f.key].size;
             const countEl = wrap.querySelector('.count');
             countEl.style.display = n ? 'inline-block' : 'none';
             countEl.textContent = n;
             wrap.classList.toggle('active', n > 0);
-        }
-
-        // ---- Delivery Issue slicer, with Fulfilment Channel nested under "Yes" ----
-        function buildDeliveryIssuePanel(f) {
-            const wrap = document.querySelector('.slicer[data-field="deliveryIssue"]');
-            const panel = wrap.querySelector('.slicer-panel');
-            const diOpts = fieldValueCounts('deliveryIssue', 'deliveryIssue');
-            // Fulfilment Channel choices, scoped to rows that ARE a delivery
-            // issue (that's the "basis" the channel list is shown against).
-            const channelOpts = fieldValueCounts('fulfilmentChannel', 'fulfilmentChannel')
-                .filter(() => true);
-
-            panel.style.width = '270px';
-            panel.style.maxHeight = '360px';
-            panel.innerHTML =
-                '<input type="text" class="search" placeholder="Search Delivery Issue / Fulfilment Channel…">' +
-                '<div class="row-actions"><button data-act="all">Select all</button><button data-act="none">Clear</button></div>' +
-                '<div class="opts"></div>';
-            const optsEl = panel.querySelector('.opts');
-
-            function isYesVal(v) { return v === 'Yes' || v === true; }
-
-            function draw(filterTxt) {
-                optsEl.innerHTML = '';
-                diOpts.forEach(([v, n]) => {
-                    if (filterTxt && !String(v).toLowerCase().includes(filterTxt) &&
-                        !(isYesVal(v) && channelOpts.some(([cv]) => String(cv).toLowerCase().includes(filterTxt)))) return;
-
-                    const id = 'opt_deliveryIssue_' + String(v).replace(/[^a-z0-9]/gi, '_');
-                    const row = document.createElement('label');
-                    row.className = 'slicer-opt';
-                    row.innerHTML = '<input type="checkbox" id="' + id + '"><span>' + escapeHtml(String(v)) +
-                        '</span><span class="n">' + n + '</span>';
-                    const cb = row.querySelector('input');
-                    cb.checked = state.filterValues.deliveryIssue.has(v);
-                    cb.addEventListener('change', () => {
-                        if (cb.checked) state.filterValues.deliveryIssue.add(v);
-                        else state.filterValues.deliveryIssue.delete(v);
-                        updateSlicerButtonState(f);
-                        render();
-                    });
-                    optsEl.appendChild(row);
-
-                    // Nest Fulfilment Channel choices under "Yes" — this is
-                    // the basis for picking which channel had the issue.
-                    if (isYesVal(v) && channelOpts.length) {
-                        const nestWrap = document.createElement('div');
-                        nestWrap.style.marginLeft = '20px';
-                        nestWrap.style.borderLeft = '2px solid var(--line)';
-                        nestWrap.style.paddingLeft = '8px';
-                        channelOpts
-                            .filter(([cv]) => !filterTxt || String(cv).toLowerCase().includes(filterTxt) ||
-                                String(v).toLowerCase().includes(filterTxt))
-                            .forEach(([cv, cn]) => {
-                                const cid = 'opt_fulfilmentChannel_' + String(cv).replace(/[^a-z0-9]/gi, '_');
-                                const crow = document.createElement('label');
-                                crow.className = 'slicer-opt';
-                                crow.innerHTML = '<input type="checkbox" id="' + cid + '"><span>' + escapeHtml(String(cv)) +
-                                    '</span><span class="n">' + cn + '</span>';
-                                const ccb = crow.querySelector('input');
-                                ccb.checked = state.filterValues.fulfilmentChannel.has(cv);
-                                ccb.addEventListener('change', () => {
-                                    if (ccb.checked) {
-                                        state.filterValues.fulfilmentChannel.add(cv);
-                                        // Picking a channel implies "Delivery Issue = Yes".
-                                        state.filterValues.deliveryIssue.add(v);
-                                        draw(panel.querySelector('.search').value.toLowerCase());
-                                    } else {
-                                        state.filterValues.fulfilmentChannel.delete(cv);
-                                    }
-                                    updateSlicerButtonState(f);
-                                    render();
-                                });
-                                nestWrap.appendChild(crow);
-                            });
-                        optsEl.appendChild(nestWrap);
-                    }
-                });
-            }
-            draw('');
-            panel.querySelector('.search').addEventListener('input', e => draw(e.target.value.toLowerCase()));
-            panel.querySelector('[data-act="all"]').addEventListener('click', () => {
-                diOpts.forEach(([v]) => state.filterValues.deliveryIssue.add(v));
-                channelOpts.forEach(([cv]) => state.filterValues.fulfilmentChannel.add(cv));
-                buildDeliveryIssuePanel(f);
-                updateSlicerButtonState(f);
-                render();
-            });
-            panel.querySelector('[data-act="none"]').addEventListener('click', () => {
-                state.filterValues.deliveryIssue.clear();
-                state.filterValues.fulfilmentChannel.clear();
-                buildDeliveryIssuePanel(f);
-                updateSlicerButtonState(f);
-                render();
-            });
-            panel.addEventListener('click', e => e.stopPropagation());
         }
 
         // ---- Period (Day / Week / Month) filter ----
@@ -2373,8 +2721,8 @@
         function escapeHtml(s) { return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;',
                 "'": '&#39;' })[c]); }
 
-        function baseFiltered(excludeField, rowsSource) {
-            return (rowsSource || state.data).filter(row => {
+        function baseFiltered(excludeField) {
+            return state.data.filter(row => {
                 for (const f of SLICER_FIELDS) {
                     if (f.key === excludeField) continue;
                     const sel = state.filterValues[f.key];
@@ -2410,16 +2758,6 @@
         }
 
         function getFiltered() { return baseFiltered(null).filter(inRange); }
-
-        // The Recontact correlation panel (EDD/GDT status) can only be
-        // computed from the Scrub Data sheet — those columns don't exist in
-        // the Raw Data header. It's kept independent of whichever sheet is
-        // currently toggled as the active view, but still respects the same
-        // slicer/period/search selections.
-        function getScrubFiltered() {
-            if (!state.scrubNormalized || !state.scrubNormalized.length) return [];
-            return baseFiltered(null, state.scrubNormalized).filter(inRange);
-        }
 
         // --------------------------------------------------------------
         // 10. TIMELINE
@@ -2561,6 +2899,17 @@
             canvas.style.display = 'none';
         }
 
+        // Grows a horizontal-bar chart's wrapper to fit every category
+        // label without Chart.js having to auto-skip alternating ticks.
+        // perItem is px of vertical room per bar; result is clamped to a
+        // sane min/max (the wrapper scrolls if it somehow still overflows).
+        function sizeChartWrap(wrapId, itemCount, perItem) {
+            const wrap = document.getElementById(wrapId);
+            if (!wrap) return;
+            const h = Math.min(640, Math.max(230, itemCount * (perItem || 32) + 46));
+            wrap.style.height = h + 'px';
+        }
+
         function upsertChart(canvasId, type, data, options, onClick) {
             const canvas = document.getElementById(canvasId);
             if (!canvas) return;
@@ -2614,30 +2963,35 @@
             renderInsights(filtered);
             renderPareto(filtered);
             renderScorecard(filtered);
-            renderEvaluatorTable(filtered);
-            renderCrosstabs(getScrubFiltered());
+            renderRecontactBreakdown(filtered);
         }
 
         // ---- KPIs ----
         const KPI_DEFS = [
             { key: 'totalCases', label: 'Total Contacts', accent: 'info', fmt: v => Math.round(v).toLocaleString() },
             { key: 'totalDsats', label: 'Total DSATs', accent: 'signal', fmt: v => Math.round(v).toLocaleString() },
-            { key: 'dissatRate', label: 'Dissat Rate', accent: 'signal', fmt: v => v.toFixed(1) + '%' },
-            { key: 'recontactRate', label: 'Recontact Rate', accent: 'amber', fmt: v => v.toFixed(1) + '%' },
-            { key: 'rcAccuracy', label: 'RC Tagging Accuracy', accent: 'good', fmt: v => v.toFixed(1) + '%' }
+            { key: 'dissatRate', label: 'DSAT Rate', accent: 'signal', fmt: v => v.toFixed(1) + '%' },
+            { key: 'recontactRate', label: 'Recontact Rate', accent: 'amber', fmt: v => v.toFixed(1) + '%' }
         ];
+
+        // Groups rows by contactUsername and returns the number of "repeat"
+        // contacts — i.e. every contact beyond a username's first one in
+        // the given row set. Basis: username (Username col for week34,
+        // USN of the user for the dsats export).
+        function recontactEventCount(rows) {
+            const byUser = groupBy(rows.filter(r => r.contactUsername), 'contactUsername');
+            let events = 0;
+            byUser.forEach(list => { if (list.length > 1) events += (list.length - 1); });
+            return events;
+        }
 
         function computeKpis(rows) {
             const totalCases = rows.length;
-            const totalDsats = rows.reduce((s, r) => s + r.numDsats, 0);
-            const dissatRows = rows.filter(r => r.numDsats > 0 || r.dissatTrigger);
+            const totalDsats = rows.reduce((s, r) => s + dsatVal(r), 0);
+            const dissatRows = rows.filter(isDsatRow);
             const dissatRate = pct(dissatRows.length, totalCases);
-            const recontactRows = rows.filter(r => r.isRecontact === true);
-            const recontactRate = pct(recontactRows.length, totalCases);
-            const evaluated = rows.filter(r => r.correctRcTagging !== null);
-            const correct = evaluated.filter(r => r.correctRcTagging === true);
-            const rcAccuracy = pct(correct.length, evaluated.length);
-            return { totalCases, totalDsats, dissatRate, recontactRate, rcAccuracy };
+            const recontactRate = pct(recontactEventCount(rows), totalCases);
+            return { totalCases, totalDsats, dissatRate, recontactRate };
         }
 
         function prevPeriodRows() {
@@ -2673,16 +3027,11 @@
                         case 'totalCases':
                             return dayRows.length;
                         case 'totalDsats':
-                            return dayRows.reduce((s, r) => s + r.numDsats, 0);
+                            return dayRows.reduce((s, r) => s + dsatVal(r), 0);
                         case 'dissatRate':
-                            return pct(dayRows.filter(r => r.numDsats > 0 || r.dissatTrigger).length, dayRows
-                                .length);
+                            return pct(dayRows.filter(isDsatRow).length, dayRows.length);
                         case 'recontactRate':
-                            return pct(dayRows.filter(r => r.isRecontact === true).length, dayRows.length);
-                        case 'rcAccuracy': {
-                            const ev = dayRows.filter(r => r.correctRcTagging !== null);
-                            return pct(ev.filter(r => r.correctRcTagging === true).length, ev.length);
-                        }
+                            return pct(recontactEventCount(dayRows), dayRows.length);
                     }
                 });
                 const path = sparkPath(series, 96, 34);
@@ -2707,11 +3056,24 @@
             rows.forEach(r => { if (!r.dateStr) return; if (!byDay.has(r.dateStr)) byDay.set(r.dateStr, { cases: 0,
                         dsats: 0 }); const o = byDay.get(r.dateStr);
                 o.cases++;
-                o.dsats += r.numDsats; });
-            let days = [...byDay.keys()].sort();
+                o.dsats += dsatVal(r); });
+
+            // Scrub series: just a per-day row count of the correlated
+            // second file. It uses its own dsat helper scope (schema may
+            // differ from the primary file) but here we only need volume.
+            const scrubOn = !!(state.scrubApplied && state.scrubData && state.scrubData.length);
+            const scrubByDay = new Map();
+            if (scrubOn) {
+                state.scrubData.forEach(r => { if (!r.dateStr) return; scrubByDay.set(r.dateStr, (scrubByDay.get(r
+                    .dateStr) || 0) + 1); });
+            }
+
+            // Union of days from both datasets so the scrub line isn't
+            // silently dropped if its date range doesn't fully overlap.
+            let days = [...new Set([...byDay.keys(), ...scrubByDay.keys()])].sort();
             document.getElementById('trendSub').textContent = days.length + ' day' + (days.length === 1 ? '' : 's') +
-                ' in range';
-            let labels, casesData, dsatsData;
+                ' in range' + (scrubOn ? ' · scrub correlated' : '');
+            let labels, casesData, dsatsData, scrubData;
             if (days.length > 60) {
                 const wk = new Map();
                 days.forEach(d => {
@@ -2719,44 +3081,64 @@
                     const onejan = new Date(dt.getFullYear(), 0, 1);
                     const week = dt.getFullYear() + '-W' + Math.ceil((((dt - onejan) / 86400000) + onejan
                         .getDay() + 1) / 7);
-                    if (!wk.has(week)) wk.set(week, { cases: 0, dsats: 0 });
+                    if (!wk.has(week)) wk.set(week, { cases: 0, dsats: 0, scrub: 0 });
                     const o = wk.get(week),
                         src = byDay.get(d);
-                    o.cases += src.cases;
-                    o.dsats += src.dsats;
+                    if (src) { o.cases += src.cases;
+                        o.dsats += src.dsats; }
+                    o.scrub += (scrubByDay.get(d) || 0);
                 });
                 labels = [...wk.keys()];
                 casesData = labels.map(k => wk.get(k).cases);
                 dsatsData = labels.map(k => wk.get(k).dsats);
+                scrubData = labels.map(k => wk.get(k).scrub);
             } else {
                 labels = days.map(d => fmtDateShort(new Date(d)));
-                casesData = days.map(d => byDay.get(d).cases);
-                dsatsData = days.map(d => byDay.get(d).dsats);
+                casesData = days.map(d => (byDay.get(d) || {}).cases || 0);
+                dsatsData = days.map(d => (byDay.get(d) || {}).dsats || 0);
+                scrubData = days.map(d => scrubByDay.get(d) || 0);
             }
-            upsertChart('trendChart', 'line', {
-                labels,
-                datasets: [
-                    { label: 'Cases', data: casesData, borderColor: '#5B9CFF', backgroundColor: 'rgba(91,156,255,.12)',
-                        fill: true, tension: .35, pointRadius: 0, borderWidth: 2 },
-                    { label: 'DSATs', data: dsatsData, borderColor: '#FF6B4A', backgroundColor: 'rgba(255,107,74,.12)',
-                        fill: true, tension: .35, pointRadius: 0, borderWidth: 2 }
-                ]
-            }, baseOpts({ stacked: false }));
+            const datasets = [
+                { label: 'Surveys', data: casesData, borderColor: '#5B9CFF', backgroundColor: 'rgba(91,156,255,.12)',
+                    fill: true, tension: .35, pointRadius: 0, borderWidth: 2 },
+                { label: 'DSATs', data: dsatsData, borderColor: '#FF6B4A', backgroundColor: 'rgba(255,107,74,.12)',
+                    fill: true, tension: .35, pointRadius: 0, borderWidth: 2 }
+            ];
+            if (scrubOn) {
+                datasets.push({ label: 'Scrub', data: scrubData, borderColor: '#FFC24B',
+                    backgroundColor: 'rgba(255,194,75,.12)', fill: true, tension: .35, pointRadius: 0, borderWidth: 2,
+                    borderDash: [4, 3] });
+            }
+            upsertChart('trendChart', 'line', { labels, datasets }, baseOpts({ stacked: false }));
         }
 
         // ---- L1 chart ----
         function renderL1Chart(rows) {
             const g = groupBy(rows, 'l1Reason');
             let arr = [...g.entries()].map(([k, list]) => {
-                const dsats = list.reduce((s, r) => s + r.numDsats, 0);
+                const dsats = list.reduce((s, r) => s + dsatVal(r), 0);
                 return { k, n: list.length, dsats, rate: pct(dsats, list.length) };
             }).sort((a, b) => b.n - a.n).slice(0, 10);
             const maxRate = Math.max(1, ...arr.map(a => a.rate));
-            upsertChart('l1Chart', 'bar', {
-                labels: arr.map(a => a.k),
-                datasets: [{ label: 'Cases', data: arr.map(a => a.n), backgroundColor: arr.map(a => lerpColor(
-                        '35D0A6', 'FF6B4A', a.rate / Math.max(maxRate, 40))), borderRadius: 4 }]
-            }, baseOpts({ indexAxis: 'y' }), (evt, elements) => {
+            const scrubOn = !!(state.scrubApplied && state.scrubData && state.scrubData.length);
+            const datasets = [{
+                label: scrubOn ? 'Primary' : 'Cases',
+                data: arr.map(a => a.n),
+                backgroundColor: scrubOn ? '#5B9CFF' : arr.map(a => lerpColor('35D0A6', 'FF6B4A', a.rate / Math.max(
+                    maxRate, 40))),
+                borderRadius: 4
+            }];
+            if (scrubOn) {
+                // Same L1 labels as the primary top 10, so "Return & Refund:
+                // 2,252 (primary) vs 204 (scrub)" lines up bar-for-bar.
+                const scrubG = groupBy(state.scrubData, 'l1Reason');
+                datasets.push({ label: 'Scrub', data: arr.map(a => (scrubG.get(a.k) || []).length),
+                    backgroundColor: '#FFC24B', borderRadius: 4 });
+            }
+            sizeChartWrap('l1ChartWrap', arr.length, 34);
+            const opts = baseOpts({ indexAxis: 'y' });
+            opts.scales.y.ticks.autoSkip = false;
+            upsertChart('l1Chart', 'bar', { labels: arr.map(a => a.k), datasets }, opts, (evt, elements) => {
                 if (!elements.length) return;
                 const idx = elements[0].index;
                 const l1 = arr[idx].k;
@@ -2777,13 +3159,21 @@
         // ---- L3 chart ----
         function renderL3Chart(rows) {
             const g = groupBy(rows, 'l3Reason');
-            let arr = [...g.entries()].map(([k, list]) => ({ k, n: list.length, dsats: list.reduce((s, r) => s + r
-                    .numDsats, 0) }))
+            let arr = [...g.entries()].map(([k, list]) => ({ k, n: list.length, dsats: list.reduce((s, r) => s +
+                    dsatVal(r), 0) }))
                 .sort((a, b) => b.n - a.n).slice(0, 10);
-            upsertChart('l3Chart', 'bar', {
-                labels: arr.map(a => a.k),
-                datasets: [{ label: 'Cases', data: arr.map(a => a.n), backgroundColor: '#5B9CFF', borderRadius: 4 }]
-            }, baseOpts({ indexAxis: 'y' }));
+            const scrubOn = !!(state.scrubApplied && state.scrubData && state.scrubData.length);
+            const datasets = [{ label: scrubOn ? 'Primary' : 'Cases', data: arr.map(a => a.n), backgroundColor: '#5B9CFF',
+                borderRadius: 4 }];
+            if (scrubOn) {
+                const scrubG = groupBy(state.scrubData, 'l3Reason');
+                datasets.push({ label: 'Scrub', data: arr.map(a => (scrubG.get(a.k) || []).length),
+                    backgroundColor: '#FFC24B', borderRadius: 4 });
+            }
+            sizeChartWrap('l3ChartWrap', arr.length, 34);
+            const opts = baseOpts({ indexAxis: 'y' });
+            opts.scales.y.ticks.autoSkip = false;
+            upsertChart('l3Chart', 'bar', { labels: arr.map(a => a.k), datasets }, opts);
         }
 
         // ---- agent leaderboard ----
@@ -2802,49 +3192,78 @@
         function renderAgentChart(rows) {
             const g = groupBy(rows, 'agentName');
             let arr = [...g.entries()].map(([k, list]) => {
-                const dsats = list.reduce((s, r) => s + r.numDsats, 0);
-                return { k, n: list.length, rate: pct(dsats, list.length) };
+                const dsats = list.reduce((s, r) => s + dsatVal(r), 0);
+                const dsatRows = list.filter(isDsatRow).filter(r => r.handleTime !== null);
+                const aht = dsatRows.length ? dsatRows.reduce((s, r) => s + r.handleTime, 0) / dsatRows.length :
+                    null;
+                return { k, n: list.length, rate: pct(dsats, list.length), aht };
             }).filter(a => a.n >= 5);
             arr.sort((a, b) => state.agentSort === 'worst' ? b.rate - a.rate : a.rate - b.rate).splice(12);
+            sizeChartWrap('agentChartWrap', arr.length, 32);
+            const opts = baseOpts({
+                indexAxis: 'y',
+                plugins: {
+                    legend: { labels: { boxWidth: 10, boxHeight: 10, usePointStyle: true } },
+                    tooltip: { backgroundColor: '#0e1728', borderColor: '#223252', borderWidth: 1,
+                        titleColor: '#E8EDF6', bodyColor: '#c9d3e6', padding: 10, cornerRadius: 6,
+                        callbacks: { afterLabel: ctx => 'AHT (DSATs): ' + fmtHandleTime(arr[ctx.dataIndex]
+                                .aht) } }
+                }
+            });
+            opts.scales.y.ticks.autoSkip = false;
             upsertChart('agentChart', 'bar', {
                 labels: arr.map(a => a.k),
                 datasets: [{ label: 'Dissat rate %', data: arr.map(a => +a.rate.toFixed(1)), backgroundColor: state
                         .agentSort === 'worst' ? '#FF6B4A' : '#35D0A6', borderRadius: 4 }]
-            }, baseOpts({ indexAxis: 'y' }));
+            }, opts);
         }
 
-        // ---- heatmap (volume only) ----
+        // ---- heatmap ----
+        document.getElementById('hmVolumeBtn').addEventListener('click', () => { state.hmMode = 'volume';
+            toggleHmBtns();
+            renderHeatmap(state.filtered); });
+        document.getElementById('hmDissatBtn').addEventListener('click', () => { state.hmMode = 'dissat';
+            toggleHmBtns();
+            renderHeatmap(state.filtered); });
+
+        function toggleHmBtns() {
+            document.getElementById('hmVolumeBtn').classList.toggle('on', state.hmMode === 'volume');
+            document.getElementById('hmDissatBtn').classList.toggle('on', state.hmMode === 'dissat');
+        }
+
+        // DSAT hour heatmap — a single row across the 24 hours of the day.
+        // Basis for the hour is the row's submit/CSAT-submission timestamp
+        // (r.hr), and DSAT volume/rate use the schema-aware dsat helpers.
         function renderHeatmap(rows) {
-            const tenures = [...new Set(rows.map(r => r.tenureBucket))].sort();
             const hours = [...Array(24).keys()];
-            const matrix = {};
-            tenures.forEach(t => matrix[t] = hours.map(() => ({ n: 0, dsats: 0 })));
+            const cells = hours.map(() => ({ n: 0, dsats: 0 }));
             rows.forEach(r => {
                 if (r.hr === null || r.hr === undefined) return;
-                const cell = matrix[r.tenureBucket][r.hr];
+                const cell = cells[r.hr];
                 cell.n++;
-                cell.dsats += r.numDsats;
+                cell.dsats += dsatVal(r);
             });
             let maxVal = 1;
-            tenures.forEach(t => matrix[t].forEach(c => {
-                if (c.n > maxVal) maxVal = c.n;
-            }));
+            cells.forEach(c => {
+                const v = state.hmMode === 'volume' ? c.dsats : pct(c.dsats, c.n);
+                if (v > maxVal) maxVal = v;
+            });
+            const hasData = cells.some(c => c.n > 0);
             let html =
                 '<table class="hm-table"><thead><tr><th></th>' + hours.map(h => '<th>' + h + '</th>').join('') +
                 '</tr></thead><tbody>';
-            tenures.forEach(t => {
-                html += '<tr><td class="hm-row-label">' + escapeHtml(t) + '</td>';
-                matrix[t].forEach(c => {
-                    const t01 = c.n / maxVal;
-                    const color = c.n === 0 ? '#141f36' : lerpColor('16213A', 'FF6B4A', t01);
-                    const label = c.n === 0 ? '' : c.n;
-                    html += '<td><div class="hm-cell" style="background:' + color + '" title="' + escapeHtml(
-                        t) + ' · ' + c.n + ' hrs  cases, ' + c.dsats + ' dsats">' + label + '</div></td>';
-                });
-                html += '</tr>';
+            html += '<tr><td class="hm-row-label">DSATs</td>';
+            cells.forEach((c, h) => {
+                const v = state.hmMode === 'volume' ? c.dsats : pct(c.dsats, c.n);
+                const t01 = v / maxVal;
+                const color = v === 0 ? '#141f36' : lerpColor('16213A', 'FF6B4A', t01);
+                const label = c.dsats === 0 ? '' : (state.hmMode === 'volume' ? Math.round(c.dsats) : Math.round(
+                    v));
+                html += '<td><div class="hm-cell" style="background:' + color + '" title="' + h + ':00 · ' + c
+                    .n + ' contacts, ' + c.dsats + ' dsats">' + label + '</div></td>';
             });
-            html += '</tbody></table>';
-            if (!tenures.length) html = '<div class="footnote">No rows in current filter to map.</div>';
+            html += '</tr></tbody></table>';
+            if (!hasData) html = '<div class="footnote">No rows in current filter to map.</div>';
             document.getElementById('heatmapGrid').innerHTML = html;
         }
 
@@ -2857,9 +3276,10 @@
                         '</b>) to generate reliable insights. Widen the timeline or clear slicers.' });
             } else {
                 const byL1 = groupBy(rows, 'l1Reason');
-                const l1arr = [...byL1.entries()].map(([k, l]) => ({ k, dsats: l.reduce((s, r) => s + r.numDsats, 0),
+                const l1arr = [...byL1.entries()].map(([k, l]) => ({ k, dsats: l.reduce((s, r) => s + dsatVal(r),
+                        0),
                     n: l.length })).sort((a, b) => b.dsats - a.dsats);
-                const totalDsats = rows.reduce((s, r) => s + r.numDsats, 0);
+                const totalDsats = rows.reduce((s, r) => s + dsatVal(r), 0);
                 if (l1arr.length && totalDsats > 0) {
                     const top = l1arr[0];
                     items.push({ ico: 'r', c: 'r', html: '<b>' + escapeHtml(top.k) +
@@ -2868,8 +3288,8 @@
                             .n + ' cases.' });
                 }
                 const byAgent = groupBy(rows, 'agentName');
-                const agentArr = [...byAgent.entries()].map(([k, l]) => ({ k, rate: pct(l.reduce((s, r) => s + r
-                        .numDsats, 0), l.length), n: l.length })).filter(a => a.n >= 5);
+                const agentArr = [...byAgent.entries()].map(([k, l]) => ({ k, rate: pct(l.reduce((s, r) => s +
+                        dsatVal(r), 0), l.length), n: l.length })).filter(a => a.n >= 5);
                 if (agentArr.length) {
                     const teamAvg = agentArr.reduce((s, a) => s + a.rate, 0) / agentArr.length;
                     const worst = agentArr.sort((a, b) => b.rate - a.rate)[0];
@@ -2899,7 +3319,7 @@
                 rows.forEach(r => { if (r.hr === null) return; if (!byHr.has(r.hr)) byHr.set(r.hr, { n: 0, d: 0 });
                     const o = byHr.get(r.hr);
                     o.n++;
-                    o.d += r.numDsats; });
+                    o.d += dsatVal(r); });
                 let worstHr = null,
                     worstRate = -1;
                 byHr.forEach((o, hr) => { if (o.n >= 5) { const rt = pct(o.d, o.n); if (rt > worstRate) { worstRate =
@@ -2932,9 +3352,9 @@
         // ---- pareto table ----
         function renderPareto(rows) {
             const g = groupBy(rows, 'l3Reason');
-            const totalDsats = rows.reduce((s, r) => s + r.numDsats, 0);
-            let arr = [...g.entries()].map(([k, l]) => ({ l3: k, cases: l.length, dsats: l.reduce((s, r) => s + r
-                    .numDsats, 0) }));
+            const totalDsats = rows.reduce((s, r) => s + dsatVal(r), 0);
+            let arr = [...g.entries()].map(([k, l]) => ({ l3: k, cases: l.length, dsats: l.reduce((s, r) => s +
+                    dsatVal(r), 0) }));
             arr.forEach(a => a.share = pct(a.dsats, totalDsats));
             sortRows(arr, state.sortState.pareto);
             const byDsatsDesc = [...arr].sort((x, y) => y.dsats - x.dsats);
@@ -2943,8 +3363,7 @@
             byDsatsDesc.forEach(a => { running += a.share;
                 cumMap.set(a.l3, running); });
             const tbody = document.querySelector('#paretoTable tbody');
-            const renderArr = isMobileView() ? arr.slice(0, 5) : arr;
-            tbody.innerHTML = renderArr.map(a => {
+            tbody.innerHTML = arr.map(a => {
                 const c = cumMap.get(a.l3);
                 return '<tr><td data-label="L3 Reason" style="font-family:var(--font-body);white-space:normal;max-width:220px;">' +
                     escapeHtml(a.l3) + '</td>' +
@@ -2962,102 +3381,50 @@
             const q = document.getElementById('agentSearch').value.trim().toLowerCase();
             const g = groupBy(rows, 'agentName');
             let arr = [...g.entries()].map(([k, l]) => {
-                const dsats = l.reduce((s, r) => s + r.numDsats, 0);
-                const recontacts = l.filter(r => r.isRecontact === true).length;
-                const evaluated = l.filter(r => r.correctRcTagging !== null);
-                const correct = evaluated.filter(r => r.correctRcTagging === true).length;
-                const coach = l[0] ? l[0].coach : '';
-                return { agent: k, coach, cases: l.length, dsats, dissat: pct(dsats, l.length), recontact: pct(
-                        recontacts, l.length), rc: pct(correct, evaluated.length || 1) };
+                const dsats = l.reduce((s, r) => s + dsatVal(r), 0);
+                return { agent: k, cases: l.length, dsats, dissat: pct(dsats, l.length) };
             });
             if (q) arr = arr.filter(a => a.agent.toLowerCase().includes(q));
             sortRows(arr, state.sortState.score);
             const maxDissat = Math.max(1, ...arr.map(a => a.dissat));
             const tbody = document.querySelector('#scoreTable tbody');
-            const renderArr = isMobileView() ? arr.slice(0, 5) : arr;
-            tbody.innerHTML = renderArr.map(a => {
+            tbody.innerHTML = arr.map(a => {
                 const barColor = lerpColor('35D0A6', 'FF6B4A', a.dissat / maxDissat);
                 return '<tr><td data-label="Agent" style="font-family:var(--font-body);">' + escapeHtml(a.agent) +
-                    '</td><td data-label="Coach" style="font-family:var(--font-body);">' + escapeHtml(a.coach) + '</td>' +
+                    '</td>' +
                     '<td data-label="Cases">' + a.cases + '</td><td data-label="DSATs">' + a.dsats + '</td>' +
-                    '<td data-label="Dissat%"><span class="cellbar" style="width:' + Math.max(4, (a.dissat / maxDissat * 36)) +
-                    'px;background:' + barColor + '"></span>' + a.dissat.toFixed(1) + '%</td>' +
-                    '<td data-label="Recontact%">' + a.recontact.toFixed(1) + '%</td><td data-label="RC Acc.%">' + a.rc.toFixed(1) + '%</td></tr>';
-            }).join('') || '<tr><td colspan="7" style="color:var(--muted);">No agents match.</td></tr>';
+                    '<td data-label="DSAT%"><span class="cellbar" style="width:' + Math.max(4, (a.dissat / maxDissat * 36)) +
+                    'px;background:' + barColor + '"></span>' + a.dissat.toFixed(1) + '%</td></tr>';
+            }).join('') || '<tr><td colspan="4" style="color:var(--muted);">No agents match.</td></tr>';
             attachSort('scoreTable', 'score', arr, () => renderScorecard(rows));
         }
 
-        // ---- evaluator table ----
-        function renderEvaluatorTable(rows) {
-            const g = groupBy(rows.filter(r => r.correctRcTagging !== null), 'evaluator');
+        // ---- recontact breakdown ----
+        // Groups all rows (in the current filter) by contactUsername
+        // (Username for week34, USN of the user for the dsats export).
+        // "Recontact" = repeat contacts beyond that user's first one;
+        // only users with at least one recontact are listed.
+        function renderRecontactBreakdown(rows) {
+            const g = groupBy(rows.filter(r => r.contactUsername), 'contactUsername');
             let arr = [...g.entries()].map(([k, l]) => {
-                const correct = l.filter(r => r.correctRcTagging === true).length;
-                const dsats = l.reduce((s, r) => s + r.numDsats, 0);
-                return { ev: k, n: l.length, acc: pct(correct, l.length), dsats: l.length ? dsats / l.length : 0 };
-            });
-            const teamAvg = arr.length ? arr.reduce((s, a) => s + a.acc, 0) / arr.length : 0;
-            arr.forEach(a => a.flag = (teamAvg - a.acc) > 10 && a.n >= 5);
-            sortRows(arr, state.sortState.evalT);
-            const tbody = document.querySelector('#evalTable tbody');
-            tbody.innerHTML = arr.map(a => '<tr><td data-label="Evaluator" style="font-family:var(--font-body);">' + escapeHtml(a.ev) +
-                    '</td><td data-label="Cases QA\'d">' + a.n + '</td><td data-label="RC Accuracy%">' + a.acc.toFixed(1) + '%</td><td data-label="Avg DSATs">' + a.dsats.toFixed(2) +
-                    '</td>' +
-                    '<td data-label="Flag">' + (a.flag ? '<span class="badge-flag">calibrate</span>' : '—') + '</td></tr>').join(
-                '') ||
-                '<tr><td colspan="5" style="color:var(--muted);">No evaluated rows in range.</td></tr>';
-            attachSort('evalTable', 'evalT', arr, () => renderEvaluatorTable(rows));
-        }
-
-        // ---- crosstabs ----
-        // Only meaningful against Scrub Data (EDD/GDT status columns don't
-        // exist in the Raw Data header), so this panel is hidden until a
-        // Scrub Data sheet has actually been loaded alongside Raw Data.
-        function renderCrosstabs(rows) {
-            const panel = document.getElementById('recontactCorrPanel');
-            if (!state.scrubNormalized || !state.scrubNormalized.length) {
-                panel.style.display = 'none';
-                return;
-            }
-            panel.style.display = '';
-            const wrap = document.getElementById('crosstabPair');
-
-            function crosstab(field, label) {
-                const cats = [...new Set(rows.map(r => r[field]))];
-                let html = '<div><h4 style="font-size:12px;margin:0 0 8px;color:var(--muted);font-weight:600;">Recontact rate by ' +
-                    label + '</h4><table class="datatable"><thead><tr><th>' + label +
-                    '</th><th>Cases</th><th>Recontact%</th></tr></thead><tbody>';
-                const arr = cats.map(cat => {
-                    const l = rows.filter(r => r[field] === cat);
-                    const rc = l.filter(r => r.isRecontact === true).length;
-                    return { cat, n: l.length, rate: pct(rc, l.length) };
-                }).sort((a, b) => b.rate - a.rate);
-                const maxRate = Math.max(1, ...arr.map(a => a.rate));
-                const renderArr = isMobileView() ? arr.slice(0, 5) : arr;
-                html += renderArr.map(a => '<tr><td data-label="' + escapeHtml(label) + '" style="font-family:var(--font-body);">' + escapeHtml(String(a.cat)) +
-                        '</td><td data-label="Cases">' + a.n + '</td>' +
-                        '<td data-label="Recontact%"><span class="cellbar" style="width:' + Math.max(4, a.rate / maxRate * 36) +
-                        'px;background:' + lerpColor('35D0A6', 'FFC24B', a.rate / maxRate) + '"></span>' + a
-                        .rate.toFixed(1) + '%</td></tr>').join('');
-                html += '</tbody></table></div>';
-                return html;
-            }
-            wrap.innerHTML = crosstab('eddStatus', 'EDD Status') + crosstab('gdtStatus', 'GDT Status');
+                const dsats = l.filter(isDsatRow).length;
+                return { user: k, recontact: l.length - 1, dsatRate: pct(dsats, l.length) };
+            }).filter(a => a.recontact >= 1);
+            sortRows(arr, state.sortState.recontact);
+            const maxRecontact = Math.max(1, ...arr.map(a => a.recontact));
+            const tbody = document.querySelector('#recontactTable tbody');
+            tbody.innerHTML = arr.map(a => {
+                const barColor = lerpColor('5B9CFF', 'FFC24B', a.recontact / maxRecontact);
+                return '<tr><td data-label="Username" style="font-family:var(--font-body);">' + escapeHtml(a
+                        .user) + '</td>' +
+                    '<td data-label="Recontact"><span class="cellbar" style="width:' + Math.max(4, (a.recontact /
+                        maxRecontact * 36)) + 'px;background:' + barColor + '"></span>' + a.recontact +
+                    '</td><td data-label="DSAT Rate">' + a.dsatRate.toFixed(1) + '%</td></tr>';
+            }).join('') || '<tr><td colspan="3" style="color:var(--muted);">No recontacts in range.</td></tr>';
+            attachSort('recontactTable', 'recontact', arr, () => renderRecontactBreakdown(rows));
         }
 
         // ---- sorting helpers ----
-        // Mobile view: several tables/lists only show their top 5 rows to
-        // keep things scannable on small screens. Matches the existing
-        // 720px mobile breakpoint used throughout the CSS.
-        function isMobileView() { return window.innerWidth <= 720; }
-        let __lastMobileState = isMobileView();
-        window.addEventListener('resize', () => {
-            const nowMobile = isMobileView();
-            if (nowMobile !== __lastMobileState) {
-                __lastMobileState = nowMobile;
-                if (state.data && state.data.length) render();
-            }
-        });
-
         function sortRows(arr, s) {
             arr.sort((a, b) => {
                 const av = a[s.k],
@@ -3190,6 +3557,33 @@
         const userPillTxt = document.getElementById('userPillTxt');
 
         let dataBooted = false;
+        state.offlineMode = false;
+
+        // --------------------------------------------------------------
+        // 17a-ii. OFFLINE ENTRY — view local backup without Firebase at all
+        // --------------------------------------------------------------
+        // Covers the worst case: Firebase Auth itself is unreachable or
+        // rate-limited, so the sign-in form never succeeds. If a local
+        // backup exists in this browser, the user can jump straight to
+        // the dashboard using that cached copy, no sign-in required.
+        refreshLocalBackupIndicator();
+
+        document.getElementById('viewOfflineBtn').addEventListener('click', async () => {
+            const backup = await loadLocalBackup();
+            if (!backup || !backup.rows.length) {
+                document.getElementById('offlineEntryMeta').textContent = 'No local backup found on this device yet.';
+                return;
+            }
+            state.offlineMode = true;
+            dataBooted = true;
+            authGateEl.style.display = 'none';
+            appWrapEl.style.display = '';
+            userPill.style.display = 'none';
+            logoutBtn.style.display = 'none';
+            state.dataSource = 'local-backup';
+            bootFromRawRows(backup.rows);
+            showLocalModeBanner('Viewing offline — not signed in to Firebase.', backup);
+        });
 
         // --------------------------------------------------------------
         // 17b. INACTIVITY AUTO-LOGOUT
@@ -3242,10 +3636,13 @@
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
+                state.offlineMode = false;
                 authGateEl.style.display = 'none';
                 appWrapEl.style.display = '';
                 userPill.style.display = '';
+                logoutBtn.style.display = '';
                 userPillTxt.textContent = user.email || 'Signed in';
+                hideLocalModeBanner();
                 startInactivityWatch();
 
                 if (!dataBooted) {
@@ -3253,10 +3650,16 @@
                     loadAllData();
                 }
             } else {
+                // If the user is deliberately viewing their local backup
+                // offline (Firebase unreachable / limit reached), don't
+                // yank them back to the sign-in screen just because there's
+                // no authenticated Firebase user.
+                if (state.offlineMode) return;
                 appWrapEl.style.display = 'none';
                 userPill.style.display = 'none';
                 authGateEl.style.display = 'flex';
                 stopInactivityWatch();
+                dataBooted = false;
                 if (inactivityLogout) {
                     loginError.textContent = 'Signed out after 5 minutes of inactivity. Please sign in again.';
                     inactivityLogout = false;
