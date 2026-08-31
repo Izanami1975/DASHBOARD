@@ -1893,7 +1893,19 @@
         }
 
         function dsatVal(r) {
-            return state.schema === 'week34' ? (r.csatLevel.toLowerCase() === 'bad' ? 1 : 0) : r.numDsats;
+            if (state.schema === 'week34') return r.csatLevel.toLowerCase() === 'bad' ? 1 : 0;
+            // 'dsats' schema covers two different exports: the legacy
+            // per-DSAT-case file (has a "No. of DSATs" column) and a
+            // Scrub/QA-review sheet loaded on its own with no Raw sheet
+            // (no numDsats column at all, but every row is a reviewed DSAT
+            // case, signalled by a filled-in Dissat Trigger). Without this
+            // fallback, loading just a Scrub sheet made every DSAT-based
+            // number — Total DSATs, DSAT-rate bars on the L1/L3/Agent
+            // charts, the Pareto/Scorecard DSAT columns, the DSAT line on
+            // the trend chart — silently compute to 0, even though isDsatRow()
+            // (used for the DSAT Rate KPI) already recognized these rows as DSATs.
+            if (r.numDsats) return r.numDsats;
+            return r.dissatTrigger ? 1 : 0;
         }
 
         function fmtHandleTime(secs) {
