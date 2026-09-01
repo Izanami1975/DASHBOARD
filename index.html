@@ -1366,6 +1366,23 @@
                 </div>
             </div>
 
+            <!-- data view: raw / scrub selector (only shown once a Scrub sheet is detected) -->
+            <div class="scrub-bar" id="dataViewBar" style="display:none;">
+                <div class="scrub-bar-left">
+                    <span class="lbl">Data view</span>
+                    <span class="sub">Choose which dataset's KPIs and panels are shown below — Raw only (default), Scrub only, or both.</span>
+                </div>
+                <div class="scrub-bar-right">
+                    <div class="slicer" id="dataViewSlicer">
+                        <button type="button"><span class="lbltxt" id="dataViewBtnLabel">🗂️ Raw Data</span></button>
+                        <div class="slicer-panel" style="width:190px;left:auto;right:0;">
+                            <label class="slicer-opt" style="cursor:pointer;"><input type="checkbox" id="dvRawChk" checked><span>Raw Data</span></label>
+                            <label class="slicer-opt" style="cursor:pointer;"><input type="checkbox" id="dvScrubChk"><span>Scrub Data</span></label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- filter rail -->
             <div class="filter-rail mobile-hide">
                 <div class="rail-top">
@@ -1401,7 +1418,7 @@
             <div class="section-head mobile-hide">
                 <div><h2><span class="num">01</span> Reason &amp; Trend Signals</h2><p>Volume vs. dissat trend, and top drivers by L1/L3 reason code.</p></div>
             </div>
-            <div class="grid2 mobile-hide">
+            <div class="grid2 mobile-hide dv-raw">
                 <div class="panel">
                     <div class="panel-head">
                         <h3>Surveys vs. DSAT</h3>
@@ -1415,10 +1432,11 @@
                         <span class="sub">click a bar to drill into L3</span>
                     </div>
                     <div class="chart-canvas-wrap" id="l1ChartWrap"><canvas id="l1Chart"></canvas></div>
+                    <div class="footnote" id="l1SplitFootnote" style="display:none;"></div>
                 </div>
             </div>
 
-            <div class="grid2 mobile-hide" style="margin-top:14px;">
+            <div class="grid2 mobile-hide dv-raw" style="margin-top:14px;">
                 <div class="panel">
                     <div class="panel-head">
                         <h3>L3 reason drilldown <span id="l1DrillChip"></span></h3>
@@ -1435,14 +1453,14 @@
                         </div>
                     </div>
                     <div class="chart-canvas-wrap" id="agentChartWrap"><canvas id="agentChart"></canvas></div>
-                    <div class="footnote">Min. 5 cases in range to qualify for ranking. Hover a bar for the agent's AHT on DSAT cases.</div>
+                    <div class="footnote">Top 10 · min. 5 cases in range to qualify for ranking. Hover a bar for the agent's AHT on DSAT cases.</div>
                 </div>
             </div>
 
-            <div class="section-head mobile-hide">
+            <div class="section-head mobile-hide dv-raw">
                 <div><h2><span class="num">02</span> DSAT Hour Signal</h2><p>Which hour of day DSATs are received, based on CSAT submission time.</p></div>
             </div>
-            <div class="panel mobile-hide" id="heatmapPanel">
+            <div class="panel mobile-hide dv-raw" id="heatmapPanel">
                 <div class="panel-head">
                     <h3>DSATs by hour of day</h3>
                     <span class="sub">volume</span>
@@ -1455,7 +1473,7 @@
                 <div><h2><span class="num">03</span> Deep Analysis</h2><p>Auto-generated read on the filtered slice — root cause, agent scorecards and recontact patterns.</p></div>
             </div>
 
-            <div class="grid2">
+            <div class="grid2 dv-raw">
                 <div class="panel mobile-hide" id="insightsPanel">
                     <div class="panel-head"><h3>Auto insights</h3><span class="sub">rule-based, recomputed live</span></div>
                     <ul id="insightsList"></ul>
@@ -1474,7 +1492,7 @@
                 </div>
             </div>
 
-            <div class="grid2" style="margin-top:14px;">
+            <div class="grid2 dv-raw" style="margin-top:14px;">
                 <div class="panel">
                     <div class="panel-head">
                         <h3>Agent scorecard</h3>
@@ -1501,15 +1519,15 @@
                 </div>
             </div>
 
-            <div class="panel mobile-hide" style="margin-top:14px;">
+            <div class="panel mobile-hide dv-scrub" style="margin-top:14px;">
                 <div class="panel-head">
                     <h3>Dissat Trigger &times; Specific Parameter/Behavior</h3>
-                    <span class="sub">from the Scrub sheet · top triggers, stacked by parameter</span>
+                    <span class="sub" id="triggerPanelSub">from the Scrub sheet · top triggers, stacked by parameter</span>
                 </div>
                 <div class="chart-canvas-wrap" id="triggerChartWrap" style="height:320px;"><canvas id="triggerChart"></canvas></div>
             </div>
 
-            <div class="panel mobile-hide" style="margin-top:14px;">
+            <div class="panel mobile-hide dv-scrub" style="margin-top:14px;">
                 <div class="panel-head"><h3>Recontact correlation</h3><span class="sub">where recontacts cluster · from the Scrub sheet</span></div>
                 <div class="crosstab-pair" id="crosstabPair"></div>
             </div>
@@ -1605,21 +1623,27 @@
             scrubRawRows: null,
             scrubData: null,
             scrubApplied: false,
-            scrubFileName: null
+            scrubFileName: null,
+            // Data View toggle: which dataset's KPIs/panels are shown.
+            // Default is Raw only; the dropdown lets either be turned on/off
+            // independently (both on shows everything, as before).
+            dataView: { raw: true, scrub: false }
         };
 
+        // Evaluator, Tenure, Correct RC Tag and Recontact were removed as
+        // slicers (mostly-"Unspecified" values, low filtering value).
+        // 'fulfilmentChannel' has no standalone button — its options are
+        // nested inside the Delivery Issue panel, shown only once "Yes"
+        // is checked (see buildDeliveryIssuePanel()) — but it stays in
+        // this array so baseFiltered()/resetFiltersBtn still know about it.
         const SLICER_FIELDS = [
             { key: 'agentName', label: 'Agent' },
             { key: 'coach', label: 'Coach' },
-            { key: 'evaluator', label: 'Evaluator' },
             { key: 'l1Reason', label: 'L1 Reason' },
             { key: 'l3Reason', label: 'L3 Reason' },
-            { key: 'tenureBucket', label: 'Tenure' },
             { key: 'csatChannel', label: 'CSAT Channel' },
             { key: 'fulfilmentChannel', label: 'Fulfilment Channel' },
-            { key: 'deliveryIssue', label: 'Delivery Issue' },
-            { key: 'correctRcTagging', label: 'Correct RC Tag' },
-            { key: 'isRecontact', label: 'Recontact' }
+            { key: 'deliveryIssue', label: 'Delivery Issue' }
         ];
 
         // Config for the Day / Week / Month period filter. `key` is the row
@@ -2064,6 +2088,8 @@
                 const scrubBar = document.getElementById('scrubBar');
                 const sub = document.getElementById('scrubBarSub');
                 scrubBar.style.display = 'flex';
+                const dataViewBar = document.getElementById('dataViewBar');
+                if (dataViewBar) dataViewBar.style.display = 'flex';
                 sub.textContent = '"' + rawName + '" used as the Raw sheet (' + sheetRows[rawName].length
                     .toLocaleString() + ' rows) and "' + scrubName + '" as the Scrub sheet (' + sheetRows[
                         scrubName].length.toLocaleString() +
@@ -2075,6 +2101,8 @@
             // than one sheet and we couldn't confidently tell Raw from
             // Scrub apart, let the user pick which single sheet to load.
             document.getElementById('scrubBar').style.display = 'none';
+            const dataViewBarFallback = document.getElementById('dataViewBar');
+            if (dataViewBarFallback) dataViewBarFallback.style.display = 'none';
             if (wb.SheetNames.length > 1) {
                 sheetPickerWrap.style.display = 'block';
                 sheetPicker.innerHTML = wb.SheetNames.map(n => '<option value="' + n + '">' + n +
@@ -2156,6 +2184,39 @@
         const scrubFilePill = document.getElementById('scrubFilePill');
         const scrubFilePillTxt = document.getElementById('scrubFilePillTxt');
 
+        // ---- Data View dropdown (Raw Data / Scrub Data, either or both) ----
+        (function setupDataViewDropdown() {
+            const wrap = document.getElementById('dataViewSlicer');
+            if (!wrap) return;
+            const dvRawChk = document.getElementById('dvRawChk');
+            const dvScrubChk = document.getElementById('dvScrubChk');
+            const label = document.getElementById('dataViewBtnLabel');
+
+            function updateLabel() {
+                if (state.dataView.raw && state.dataView.scrub) label.textContent = '🗂️ Raw + Scrub';
+                else if (state.dataView.scrub) label.textContent = '🗂️ Scrub Data';
+                else label.textContent = '🗂️ Raw Data';
+            }
+            function onChange() {
+                // At least one of the two must stay selected.
+                if (!dvRawChk.checked && !dvScrubChk.checked) dvRawChk.checked = true;
+                state.dataView.raw = dvRawChk.checked;
+                state.dataView.scrub = dvScrubChk.checked;
+                updateLabel();
+                applyDataView();
+                if (state.data && state.data.length) render();
+            }
+            dvRawChk.addEventListener('change', onChange);
+            dvScrubChk.addEventListener('change', onChange);
+            wrap.querySelector('button').addEventListener('click', e => {
+                e.stopPropagation();
+                const wasOpen = wrap.classList.contains('open');
+                document.querySelectorAll('.slicer.open').forEach(s => s.classList.remove('open'));
+                if (!wasOpen) wrap.classList.add('open');
+            });
+            updateLabel();
+        })();
+
         function loadScrubRows(rawRows, sheetName) {
             state.scrubFileName = sheetName;
             state.scrubRawRows = rawRows;
@@ -2175,6 +2236,16 @@
             state.scrubFileName = null;
             document.getElementById('scrubBar').style.display = 'none';
             scrubFilePill.style.display = 'none';
+            const dataViewBarClear = document.getElementById('dataViewBar');
+            if (dataViewBarClear) dataViewBarClear.style.display = 'none';
+            state.dataView.raw = true;
+            state.dataView.scrub = false;
+            const dvRawChkClear = document.getElementById('dvRawChk'),
+                dvScrubChkClear = document.getElementById('dvScrubChk');
+            if (dvRawChkClear) dvRawChkClear.checked = true;
+            if (dvScrubChkClear) dvScrubChkClear.checked = false;
+            const dvLabelClear = document.getElementById('dataViewBtnLabel');
+            if (dvLabelClear) dvLabelClear.textContent = '🗂️ Raw Data';
             if (state.data.length) render();
         }
 
@@ -2540,6 +2611,9 @@
             });
 
             SLICER_FIELDS.forEach(f => {
+                // Fulfilment Channel has no standalone button — its options
+                // live nested inside the Delivery Issue panel (under "Yes").
+                if (f.key === 'fulfilmentChannel') return;
                 const wrap = document.createElement('div');
                 wrap.className = 'slicer';
                 wrap.dataset.field = f.key;
@@ -2551,8 +2625,11 @@
                     e.stopPropagation();
                     const wasOpen = wrap.classList.contains('open');
                     document.querySelectorAll('.slicer.open').forEach(s => s.classList.remove('open'));
-                    if (!wasOpen) { wrap.classList.add('open');
-                        buildSlicerPanel(f); }
+                    if (!wasOpen) {
+                        wrap.classList.add('open');
+                        if (f.key === 'deliveryIssue') buildDeliveryIssuePanel();
+                        else buildSlicerPanel(f);
+                    }
                 });
             });
             document.addEventListener('click', () => document.querySelectorAll('.slicer.open').forEach(s => s.classList
@@ -2590,6 +2667,101 @@
                 counts.set(v, (counts.get(v) || 0) + 1);
             });
             return [...counts.entries()].sort((a, b) => b[1] - a[1]);
+        }
+
+        // Same faceted-count pattern as fieldValueCounts() above, but
+        // sourced from the Scrub sheet's normalized rows instead of the
+        // Raw sheet's — used for Delivery Issue / Fulfilment Channel,
+        // which only exist on the Scrub sheet (see buildDeliveryIssuePanel).
+        function scrubFieldValueCounts(field, excludeField) {
+            const counts = new Map();
+            baseFiltered(excludeField, state.scrubData || []).forEach(row => {
+                let v = row[field];
+                if (v === true) v = 'Yes';
+                else if (v === false) v = 'No';
+                else if (v === null || v === undefined || v === '') v = 'Unspecified';
+                counts.set(v, (counts.get(v) || 0) + 1);
+            });
+            return [...counts.entries()].sort((a, b) => b[1] - a[1]);
+        }
+
+        // Fulfilment Channel counts, scoped to Scrub rows where Delivery
+        // Issue = Yes (honoring every other active slicer/timeline filter).
+        function fulfilmentChannelCountsForYes() {
+            const base = baseFiltered('fulfilmentChannel', state.scrubData || []).filter(r => r.deliveryIssue ===
+                true);
+            const counts = new Map();
+            base.forEach(r => {
+                const v = (r.fulfilmentChannel || 'Unspecified').toString();
+                counts.set(v, (counts.get(v) || 0) + 1);
+            });
+            return [...counts.entries()].sort((a, b) => b[1] - a[1]);
+        }
+
+        // Delivery Issue slicer panel: Yes/No options sourced from the
+        // Scrub sheet (Raw sheet has no such column). Checking "Yes"
+        // reveals the Fulfilment Channel options nested underneath it,
+        // scoped to Delivery Issue = Yes rows.
+        function buildDeliveryIssuePanel() {
+            const wrap = document.querySelector('.slicer[data-field="deliveryIssue"]');
+            const panel = wrap.querySelector('.slicer-panel');
+            const diCounts = scrubFieldValueCounts('deliveryIssue', 'deliveryIssue').filter(([v]) => v === 'Yes' ||
+                v === 'No');
+            panel.innerHTML = '<div class="opts" id="deliveryIssueOpts"></div>';
+            const optsEl = panel.querySelector('#deliveryIssueOpts');
+            if (!diCounts.length) {
+                optsEl.innerHTML =
+                    '<div class="footnote" style="font-size:11px;">No Delivery Issue data — needs a Scrub sheet with a Delivery Issue? column.</div>';
+            }
+            diCounts.forEach(([v, n]) => {
+                const row = document.createElement('label');
+                row.className = 'slicer-opt';
+                row.style.cursor = 'pointer';
+                row.innerHTML = '<input type="checkbox"><span>' + escapeHtml(String(v)) + '</span><span class="n">' +
+                    n + '</span>';
+                const cb = row.querySelector('input');
+                cb.checked = state.filterValues.deliveryIssue.has(v);
+                cb.addEventListener('change', () => {
+                    if (cb.checked) state.filterValues.deliveryIssue.add(v);
+                    else state.filterValues.deliveryIssue.delete(v);
+                    updateDeliveryIssueButtonState();
+                    buildDeliveryIssuePanel();
+                    render();
+                });
+                optsEl.appendChild(row);
+
+                // Nested Fulfilment Channel list — shown only under "Yes",
+                // only once "Yes" is checked.
+                if (v === 'Yes' && cb.checked) {
+                    const nested = document.createElement('div');
+                    nested.style.cssText =
+                        'margin:2px 0 6px 18px;padding-left:9px;border-left:2px solid var(--line);';
+                    const chCounts = fulfilmentChannelCountsForYes();
+                    if (!chCounts.length) {
+                        nested.innerHTML =
+                            '<div class="footnote" style="font-size:11px;">No Fulfilment Channel data for Delivery Issue = Yes.</div>';
+                    } else {
+                        chCounts.forEach(([cv, cn]) => {
+                            const crow = document.createElement('label');
+                            crow.className = 'slicer-opt';
+                            crow.style.cursor = 'pointer';
+                            crow.innerHTML = '<input type="checkbox"><span>' + escapeHtml(String(cv)) +
+                                '</span><span class="n">' + cn + '</span>';
+                            const ccb = crow.querySelector('input');
+                            ccb.checked = state.filterValues.fulfilmentChannel.has(cv);
+                            ccb.addEventListener('change', () => {
+                                if (ccb.checked) state.filterValues.fulfilmentChannel.add(cv);
+                                else state.filterValues.fulfilmentChannel.delete(cv);
+                                updateDeliveryIssueButtonState();
+                                render();
+                            });
+                            nested.appendChild(crow);
+                        });
+                    }
+                    optsEl.appendChild(nested);
+                }
+            });
+            panel.addEventListener('click', e => e.stopPropagation());
         }
 
         function buildSlicerPanel(f) {
@@ -2638,7 +2810,20 @@
 
         function updateSlicerButtonState(f) {
             const wrap = document.querySelector('.slicer[data-field="' + f.key + '"]');
+            if (!wrap) return; // e.g. fulfilmentChannel has no standalone button
             const n = state.filterValues[f.key].size;
+            const countEl = wrap.querySelector('.count');
+            countEl.style.display = n ? 'inline-block' : 'none';
+            countEl.textContent = n;
+            wrap.classList.toggle('active', n > 0);
+        }
+
+        // Delivery Issue's button badge reflects both its own selections
+        // and any nested Fulfilment Channel selections made under "Yes".
+        function updateDeliveryIssueButtonState() {
+            const wrap = document.querySelector('.slicer[data-field="deliveryIssue"]');
+            if (!wrap) return;
+            const n = state.filterValues.deliveryIssue.size + state.filterValues.fulfilmentChannel.size;
             const countEl = wrap.querySelector('.count');
             countEl.style.display = n ? 'inline-block' : 'none';
             countEl.textContent = n;
@@ -2740,9 +2925,16 @@
                 "'": '&#39;' })[c]); }
 
         function baseFiltered(excludeField, sourceRows) {
-            return (sourceRows || state.data).filter(row => {
+            const rows = sourceRows || state.data;
+            // Delivery Issue / Fulfilment Channel only exist on the Scrub
+            // sheet — applying them against the Raw sheet would zero it
+            // out (every Raw row reads as "Unspecified"), so they only
+            // filter when we're actually filtering Scrub rows.
+            const isScrubSource = sourceRows === state.scrubData;
+            return rows.filter(row => {
                 for (const f of SLICER_FIELDS) {
                     if (f.key === excludeField) continue;
+                    if (!isScrubSource && (f.key === 'deliveryIssue' || f.key === 'fulfilmentChannel')) continue;
                     const sel = state.filterValues[f.key];
                     if (sel.size === 0) continue;
                     let v = row[f.key];
@@ -2979,7 +3171,18 @@
         // --------------------------------------------------------------
         // 13. MAIN RENDER
         // --------------------------------------------------------------
+        // Shows/hides the Raw-only vs Scrub-only KPI cards and panels
+        // per the Data View dropdown. Both on shows everything (the
+        // original full dashboard); default is Raw only.
+        function applyDataView() {
+            const showRaw = state.dataView.raw;
+            const showScrub = state.dataView.scrub;
+            document.querySelectorAll('.dv-raw').forEach(el => { el.style.display = showRaw ? '' : 'none'; });
+            document.querySelectorAll('.dv-scrub').forEach(el => { el.style.display = showScrub ? '' : 'none'; });
+        }
+
         function render() {
+            applyDataView();
             const filtered = getFiltered();
             state.filtered = filtered;
             const scrubFiltered = getFilteredScrub();
@@ -3022,13 +3225,11 @@
             return events;
         }
 
-        // Total Scrub: count of distinct Session IDs in the (filtered)
-        // Scrub sheet — basis is Session ID, so duplicate rows sharing a
-        // session only count once.
+        // Total Scrub: total row count of the (filtered) Scrub sheet.
+        // Session IDs can legitimately repeat (a case scrubbed more than
+        // once), so this counts every row rather than deduping by ID.
         function computeScrubKpi(scrubRows) {
-            const ids = new Set();
-            scrubRows.forEach(r => { if (r.sessionId) ids.add(r.sessionId); });
-            return ids.size;
+            return scrubRows.length;
         }
 
         function computeKpis(rows) {
@@ -3065,7 +3266,9 @@
             prev.totalScrub = computeScrubKpi(prevPeriodScrubRows());
             const strip = document.getElementById('kpiStrip');
             strip.innerHTML = '';
-            KPI_DEFS.forEach(def => {
+            const activeDefs = KPI_DEFS.filter(def => def.key === 'totalScrub' ? state.dataView.scrub : state
+                .dataView.raw);
+            activeDefs.forEach(def => {
                 const val = cur[def.key];
                 const pval = prev[def.key];
                 let deltaTxt = '—',
@@ -3189,15 +3392,44 @@
                     maxRate, 40))),
                 borderRadius: 4
             }];
+            let scrubG = null;
+            const footnote = document.getElementById('l1SplitFootnote');
             if (scrubOn) {
                 // Same L1 labels as the primary top 10, so "Return & Refund:
                 // 2,252 (primary) vs 204 (scrub)" lines up bar-for-bar.
-                const scrubG = groupBy(state.scrubData, 'l1Reason');
+                scrubG = groupBy(state.scrubData, 'l1Reason');
                 datasets.push({ label: 'Scrub', data: arr.map(a => (scrubG.get(a.k) || []).length),
                     backgroundColor: '#FFC24B', borderRadius: 4 });
+
+                // Percentage split of Primary vs Scrub, out of 100%, across
+                // this same top-10 L1 slice.
+                const totalPrimary = arr.reduce((s, a) => s + a.n, 0);
+                const totalScrubTop = arr.reduce((s, a) => s + (scrubG.get(a.k) || []).length, 0);
+                const totalBoth = totalPrimary + totalScrubTop;
+                if (footnote) {
+                    footnote.style.display = 'block';
+                    footnote.textContent = 'Primary ' + pct(totalPrimary, totalBoth).toFixed(1) + '% · Scrub ' +
+                        pct(totalScrubTop, totalBoth).toFixed(1) + '% of this top-10 L1 volume (100%)';
+                }
+            } else if (footnote) {
+                footnote.style.display = 'none';
             }
             sizeChartWrap('l1ChartWrap', arr.length, 34);
-            const opts = baseOpts({ indexAxis: 'y' });
+            const opts = baseOpts({
+                indexAxis: 'y',
+                plugins: {
+                    legend: { labels: { boxWidth: 10, boxHeight: 10, usePointStyle: true } },
+                    tooltip: { backgroundColor: '#0e1728', borderColor: '#223252', borderWidth: 1,
+                        titleColor: '#E8EDF6', bodyColor: '#c9d3e6', padding: 10, cornerRadius: 6,
+                        callbacks: !scrubOn ? undefined : { afterLabel: ctx => {
+                                const a = arr[ctx.dataIndex];
+                                const scrubCount = (scrubG.get(a.k) || []).length;
+                                const tot = a.n + scrubCount;
+                                return 'Primary ' + pct(a.n, tot).toFixed(1) + '% · Scrub ' + pct(scrubCount, tot)
+                                    .toFixed(1) + '% (of this reason\'s 100%)';
+                            } } }
+                }
+            });
             opts.scales.y.ticks.autoSkip = false;
             upsertChart('l1Chart', 'bar', { labels: arr.map(a => a.k), datasets }, opts, (evt, elements) => {
                 if (!elements.length) return;
@@ -3259,7 +3491,7 @@
                     null;
                 return { k, n: list.length, rate: pct(dsats, list.length), aht };
             }).filter(a => a.n >= 5);
-            arr.sort((a, b) => state.agentSort === 'worst' ? b.rate - a.rate : a.rate - b.rate).splice(12);
+            arr.sort((a, b) => state.agentSort === 'worst' ? b.rate - a.rate : a.rate - b.rate).splice(10);
             sizeChartWrap('agentChartWrap', arr.length, 32);
             const opts = baseOpts({
                 indexAxis: 'y',
@@ -3484,15 +3716,29 @@
         }
 
         // ---- Dissat Trigger x Specific Parameter/Behavior (from Scrub sheet) ----
+        // Rows are "process/policy related" when the Dissat Trigger or the
+        // Specific Parameter/Behavior text mentions process or policy.
+        const PROCESS_POLICY_RE = /process|polic(?:y|ies)/i;
+        function isProcessPolicyRow(r) {
+            return PROCESS_POLICY_RE.test(r.dissatTrigger || '') || PROCESS_POLICY_RE.test(r.specificParam || '');
+        }
+
         function renderTriggerChart(rows) {
             const validRows = rows.filter(r => r.dissatTrigger);
+            const triggerSub = document.getElementById('triggerPanelSub');
             if (!validRows.length) {
                 if (state.charts['triggerChart']) { state.charts['triggerChart'].destroy();
                     delete state.charts['triggerChart']; }
                 showChartFallback('triggerChart',
                     'No Dissat Trigger data in the current filter — this chart needs a Scrub sheet with Dissat Trigger / Specific Parameter columns.'
                     );
+                if (triggerSub) triggerSub.textContent = 'from the Scrub sheet · top triggers, stacked by parameter';
                 return;
+            }
+            if (triggerSub) {
+                const policyPct = pct(validRows.filter(isProcessPolicyRow).length, validRows.length);
+                triggerSub.textContent = 'from the Scrub sheet · top triggers, stacked by parameter · Process/Policy related: ' +
+                    policyPct.toFixed(1) + '% of ' + validRows.length.toLocaleString() + ' tagged (100%)';
             }
             const byTrigger = groupBy(validRows, 'dissatTrigger');
             const triggerArr = [...byTrigger.entries()].map(([k, l]) => ({ k, n: l.length })).sort((a, b) => b
