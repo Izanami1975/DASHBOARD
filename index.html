@@ -1605,18 +1605,7 @@
             scrubRawRows: null,
             scrubData: null,
             scrubApplied: false,
-            scrubFileName: null,
-            // True when the data currently loaded as the PRIMARY dataset
-            // (state.data) is itself scrub-shaped (Dissat Trigger /
-            // Evaluator / Correct RC tagging / Specific Parameter columns)
-            // and no separate Scrub sheet was paired with it — e.g. a
-            // standalone Scrub-only upload picked via the sheet picker, or
-            // a restored backup that only ever had scrub rows. Lets the
-            // scrub-only visuals (Total Scrub KPI, Dissat Trigger chart,
-            // Recontact correlation) fall back to state.data instead of
-            // going blank just because state.scrubData was never set —
-            // see getFilteredScrub().
-            primaryIsScrub: false
+            scrubFileName: null
         };
 
         const SLICER_FIELDS = [
@@ -2115,12 +2104,6 @@
         function bootFromRawRows(rawRows) {
             state.rawRows = rawRows;
             state.schema = detectSchema(rawRows);
-            // Flag whether this primary dataset is itself scrub-shaped (see
-            // state.primaryIsScrub above). A paired Raw sheet will always
-            // classify as 'raw' here (that's how it got picked as rawName
-            // in bootFromWorkbook), so this only turns true for genuine
-            // scrub-only loads.
-            state.primaryIsScrub = classifySheet(rawRows) === 'scrub';
             const normalized = normalizeRows(rawRows);
             state.data = normalized;
             state.lastUploadedRows = normalized.length;
@@ -2800,19 +2783,8 @@
         // Used by the Total Scrub KPI, the Dissat Trigger chart and the
         // Recontact correlation crosstab.
         function getFilteredScrub() {
-            if (state.scrubData && state.scrubData.length) {
-                return baseFiltered(null, state.scrubData).filter(inRange);
-            }
-            // No separate Scrub sheet is loaded. If the only data we have
-            // IS the scrub data (a standalone Scrub sheet loaded as the
-            // primary dataset, with no paired Raw sheet), use that instead
-            // of returning empty — otherwise the Total Scrub KPI, Dissat
-            // Trigger chart and Recontact correlation panel would all go
-            // blank just because there's no *second* dataset to point to.
-            if (state.primaryIsScrub && state.data && state.data.length) {
-                return baseFiltered(null, state.data).filter(inRange);
-            }
-            return [];
+            if (!state.scrubData || !state.scrubData.length) return [];
+            return baseFiltered(null, state.scrubData).filter(inRange);
         }
 
 
@@ -3077,18 +3049,11 @@
         }
 
         function prevPeriodScrubRows() {
-            if (!state.rangeStart || !state.rangeEnd) return [];
-            // Mirror the same fallback as getFilteredScrub(), so the "vs
-            // prior period" delta on the Total Scrub KPI stays consistent
-            // with the current-period number instead of comparing against
-            // a hardcoded empty set for scrub-only uploads.
-            const src = (state.scrubData && state.scrubData.length) ? state.scrubData :
-                (state.primaryIsScrub && state.data.length ? state.data : null);
-            if (!src) return [];
+            if (!state.rangeStart || !state.rangeEnd || !state.scrubData) return [];
             const span = state.rangeEnd - state.rangeStart;
             const prevStart = new Date(state.rangeStart.getTime() - span);
             const prevEnd = new Date(state.rangeStart.getTime() - 1);
-            return baseFiltered(null, src).filter(r => r.submitTime && r.submitTime >= prevStart && r
+            return baseFiltered(null, state.scrubData).filter(r => r.submitTime && r.submitTime >= prevStart && r
                 .submitTime <= prevEnd);
         }
 
