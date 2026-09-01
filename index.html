@@ -46,18 +46,18 @@
 
     <style>
         /* ===== CSS ===== */
-        :root {
-            --bg: #0B1220;
-            --panel: #121B2E;
-            --panel2: #16213A;
-            --line: #223252;
-            --text: #E8EDF6;
-            --muted: #8593AC;
-            --signal: #FF6B4A;
-            --signal-dim: #3a2420;
-            --good: #35D0A6;
-            --info: #5B9CFF;
-            --amber: #FFC24B;
+         :root {
+            --bg: #F7F9FC;
+            --panel: #FFFFFF;
+            --panel2: #F8FAFC;
+            --line: #D9E0E8;
+            --text: #1F2937;
+            --muted: #667085;
+            --signal: #E35D3F;
+            --signal-dim: #FFF1ED;
+            --good: #16835B;
+            --info: #2F7DE1;
+            --amber: #C88A08;
             --radius: 10px;
             --font-display: 'Space Grotesk', system-ui, sans-serif;
             --font-body: 'Inter', system-ui, sans-serif;
@@ -83,7 +83,7 @@
         }
         ::selection {
             background: var(--signal);
-            color: #0B1220;
+            color: #F7F9FC;
         }
         a {
             color: var(--info);
@@ -121,13 +121,13 @@
             height: 42px;
             border-radius: 10px;
             flex: none;
-            background: linear-gradient(145deg, var(--signal), #c94a2e);
+            background: linear-gradient(145deg, var(--signal), #D94F32);
             display: flex;
             align-items: center;
             justify-content: center;
             font-family: var(--font-display);
             font-weight: 700;
-            color: #0B1220;
+            color: #F7F9FC;
             font-size: 18px;
             box-shadow: 0 0 0 1px rgba(255, 255, 255, .08), 0 6px 18px -6px rgba(255, 107, 74, .6);
         }
@@ -195,7 +195,7 @@
         .btn.primary {
             background: var(--signal);
             border-color: var(--signal);
-            color: #1c0c06;
+            color: #FFFFFF;
             font-weight: 600;
         }
         .btn.primary:hover {
@@ -275,7 +275,7 @@
         }
         #uploadStage.drag {
             border-color: var(--signal);
-            background: #171025;
+            background: #F8F5FF;
         }
         #uploadStage h2 {
             font-family: var(--font-display);
@@ -433,7 +433,7 @@
         }
         .slicer>button .count {
             background: var(--signal);
-            color: #1c0c06;
+            color: #FFFFFF;
             font-family: var(--font-mono);
             font-size: 10.5px;
             border-radius: 999px;
@@ -452,7 +452,7 @@
             top: calc(100% + 6px);
             left: 0;
             z-index: 40;
-            background: #0e1728;
+            background: #FFFFFF;
             border: 1px solid var(--line);
             border-radius: 9px;
             width: 230px;
@@ -585,7 +585,7 @@
             height: 14px;
             border-radius: 50%;
             background: var(--signal);
-            border: 2px solid #0B1220;
+            border: 2px solid #F7F9FC;
             margin-top: -5px;
             cursor: grab;
             box-shadow: 0 0 0 3px rgba(255, 107, 74, .25);
@@ -600,7 +600,7 @@
             height: 14px;
             border-radius: 50%;
             background: var(--signal);
-            border: 2px solid #0B1220;
+            border: 2px solid #F7F9FC;
             cursor: grab;
         }
         .slider-track {
@@ -769,15 +769,15 @@
         .toggles button.on {
             color: var(--text);
             border-color: var(--signal);
-            background: #241811;
+            background: #FFF1ED;
         }
         .chip {
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            background: #241811;
+            background: #FFF1ED;
             border: 1px solid var(--signal);
-            color: #ffb59f;
+            color: #C2412D;
             border-radius: 999px;
             font-size: 11px;
             padding: 3px 9px;
@@ -786,7 +786,7 @@
         .chip button {
             background: none;
             border: none;
-            color: #ffb59f;
+            color: #C2412D;
             padding: 0;
             font-size: 13px;
             line-height: 1;
@@ -888,15 +888,15 @@
             color: var(--signal);
         }
         #insightsPanel li .ico.g {
-            background: #0e2b24;
+            background: #ECFDF3;
             color: var(--good);
         }
         #insightsPanel li .ico.a {
-            background: #2b2410;
+            background: #FFFAEB;
             color: var(--amber);
         }
         #insightsPanel li .ico.i {
-            background: #0e1f36;
+            background: #EFF8FF;
             color: var(--info);
         }
 
@@ -932,7 +932,7 @@
         }
         table.datatable td {
             padding: 6px 8px;
-            border-bottom: 1px solid #1a2740;
+            border-bottom: 1px solid #E5E7EB;
             font-family: var(--font-mono);
             font-size: 11.3px;
             white-space: nowrap;
@@ -961,7 +961,7 @@
             border-radius: 4px;
         }
         .badge-flag {
-            background: #2b2410;
+            background: #FFFAEB;
             color: var(--amber);
             font-family: var(--font-mono);
             font-size: 9.5px;
@@ -1203,7 +1203,7 @@
                 justify-content: space-between;
                 gap: 10px;
                 padding: 6px 2px;
-                border-bottom: 1px solid #1a2740;
+                border-bottom: 1px solid #E5E7EB;
                 white-space: normal;
                 text-align: right;
                 max-width: none;
@@ -1338,7 +1338,7 @@
             margin-bottom: 14px;
             border-radius: 10px;
             background: var(--signal-dim);
-            border: 1px solid #5a3226;
+            border: 1px solid #F4D7CF;
             color: var(--text);
             font-size: 12.5px;
         }
@@ -1369,6 +1369,54 @@
         }
         #localBackupPill.show { display: inline-flex; }
         #localBackupPill .dot { background: var(--amber); }
+    
+        /* ===== GLOBAL LIGHT MODE ===== */
+        html, body { background: #F7F9FC !important; color: #1F2937 !important; }
+        body { background: #F7F9FC !important; }
+        header.top { border-bottom-color: #D9E0E8 !important; }
+        .brand p, .section-head p, .panel-head .sub, .footnote, .rail-top .lbl, .scrub-bar-left .sub { color: #667085 !important; }
+        .pill, .btn, .scrub-bar, .filter-rail, .timeline-box, .kpi-card, .panel, #uploadStage, .chart-placeholder {
+            background: #FFFFFF !important; border-color: #D9E0E8 !important; color: #1F2937 !important;
+        }
+        .btn { background: #F8FAFC !important; color: #344054 !important; }
+        .btn:hover { background: #F2F4F7 !important; border-color: #BFC7D4 !important; }
+        .btn.primary { background: var(--signal) !important; border-color: var(--signal) !important; color: #FFFFFF !important; }
+        .btn.primary:hover { background: #D94F32 !important; }
+        .btn.ghost { background: transparent !important; }
+        .slicer > button, .searchbox, .slicer-panel input.search, #sheetPickerWrap select, #scrubSheetPickerWrap select, .toggles button {
+            background: #F8FAFC !important; border-color: #D9E0E8 !important; color: #344054 !important;
+        }
+        .slicer > button:hover, .slicer-opt:hover { background: #F2F4F7 !important; }
+        .slicer-panel { background: #FFFFFF !important; border-color: #D9E0E8 !important; box-shadow: 0 18px 40px -12px rgba(16,24,40,.16) !important; }
+        .slicer-panel input.search { color: #344054 !important; }
+        .searchbox input { color: #344054 !important; }
+        .slicer-opt { color: #344054 !important; }
+        .slicer-opt span.n { color: #667085 !important; }
+        .kpi-card .klabel, .kpi-card .kval sub { color: #667085 !important; }
+        .section-head h2, .panel-head h3, .brand h1 { color: #1F2937 !important; }
+        .section-head h2 .num, .eyebrow { color: var(--signal) !important; }
+        .panel { box-shadow: 0 2px 8px rgba(16,24,40,.04) !important; }
+        .timeline-head .range-txt { color: #344054 !important; }
+        .slider-track { background: #D9E0E8 !important; }
+        .slider-row input[type=range]::-webkit-slider-thumb, .slider-row input[type=range]::-moz-range-thumb { border-color: #FFFFFF !important; }
+        #insightsPanel li { background: #F8FAFC !important; border-color: #E4E7EC !important; color: #344054 !important; }
+        #insightsPanel li b { color: #1F2937 !important; }
+        table.datatable th { background: #FFFFFF !important; color: #667085 !important; border-bottom-color: #D9E0E8 !important; }
+        table.datatable td { color: #344054 !important; border-bottom-color: #E5E7EB !important; }
+        table.datatable tbody tr:hover { background: #F8FAFC !important; }
+        .badge-vital { background: #FFF1ED !important; color: #C2412D !important; }
+        .badge-flag { background: #FFFAEB !important; color: #B54708 !important; }
+        .chip { background: #FFF1ED !important; color: #C2412D !important; border-color: #E35D3F !important; }
+        .scrub-tag { background: #FFFAEB !important; color: #B54708 !important; border-color: #F2D38B !important; }
+        #saveStatus { background: #FFFFFF !important; border-color: #D9E0E8 !important; color: #1F2937 !important; box-shadow: 0 12px 40px -8px rgba(16,24,40,.18) !important; }
+        #saveStatus .close { color: #667085 !important; }
+        #uploadStage.drag { background: #FFF8F5 !important; }
+        .chart-placeholder { background: #F8FAFC !important; border-color: #D9E0E8 !important; color: #667085 !important; }
+        ::selection { background: #F6B4A4 !important; color: #1F2937 !important; }
+
+        /* Chart.js light-mode defaults */
+        .deep-analysis-section { background: #F8FAFC !important; border-color: #D9E0E8 !important; }
+        .deep-analysis-grid .panel { background: #FFFFFF !important; border-color: #D9E0E8 !important; }
     </style>
 </head>
 <body>
@@ -1376,7 +1424,7 @@
     <!-- ===== AUTH GATE ===== -->
     <div id="authGate">
         <form id="loginForm">
-            <div class="mark" style="width:44px;height:44px;border-radius:10px;background:linear-gradient(145deg,var(--signal),#c94a2e);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;color:#0B1220;font-size:19px;margin-bottom:6px;">QA</div>
+            <div class="mark" style="width:44px;height:44px;border-radius:10px;background:linear-gradient(145deg,var(--signal),#D94F32);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;color:#F7F9FC;font-size:19px;margin-bottom:6px;">QA</div>
             <h2 style="margin:0;font-family:var(--font-display);font-size:18px;">Sign in required</h2>
             <p style="margin:0 0 6px;color:var(--muted);font-size:12.5px;">This dashboard reads and writes live QA data. Sign in with your team account to continue.</p>
             <input type="email" id="loginEmail" placeholder="Email" autocomplete="username" required />
@@ -1428,7 +1476,7 @@
         <!-- ===== UPLOAD STAGE ===== -->
         <div id="uploadStage">
             <div class="icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8593AC" stroke-width="1.6"><path d="M12 3v12m0-12l-4 4m4-4l4 4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#667085" stroke-width="1.6"><path d="M12 3v12m0-12l-4 4m4-4l4 4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
             </div>
             <h2>Drop in your QA export</h2>
             <p>Drag in ONE .xlsx file with two sheets — a <b>Raw</b> sheet (Week, Date, Case ID, Agent Name, Survey Channel, CSAT Level, Username, Email, Agent Skill, L1/L3 Reason Code, CSAT Submission, Report Date, Handle Time) and a <b>Scrub</b> sheet (Week, Submit Time, Agent Email/Name, Session ID, L1/L3 Reason Code Name, Dissat Trigger, Specific Parameter/Behavior, Correct RC tagging, Evaluator, etc.). Both sheets are detected automatically and shown together in the dashboard — no second upload needed. Plain single-sheet exports still work too.</p>
@@ -3148,7 +3196,7 @@
                 const v = byDay.get(k) || 0;
                 const bh = (v / max) * h * 0.92;
                 bars += '<rect x="' + (i * bw + 0.5) + '" y="' + (h - bh) + '" width="' + Math.max(0.6, bw - 1) +
-                    '" height="' + bh + '" fill="#2a3d63" />';
+                    '" height="' + bh + '" fill="#CBD5E1" />';
             });
             svg.innerHTML = bars;
         }
@@ -3554,8 +3602,8 @@
                 indexAxis: 'y',
                 plugins: {
                     legend: { labels: { boxWidth: 10, boxHeight: 10, usePointStyle: true } },
-                    tooltip: { backgroundColor: '#0e1728', borderColor: '#223252', borderWidth: 1,
-                        titleColor: '#E8EDF6', bodyColor: '#c9d3e6', padding: 10, cornerRadius: 6,
+                    tooltip: { backgroundColor: '#FFFFFF', borderColor: '#D9E0E8', borderWidth: 1,
+                        titleColor: '#1F2937', bodyColor: '#475467', padding: 10, cornerRadius: 6,
                         callbacks: !scrubOn ? undefined : { afterLabel: ctx => {
                                 const a = arr[ctx.dataIndex];
                                 const scrubCount = (scrubG.get(a.k) || []).length;
@@ -3635,8 +3683,8 @@
                 indexAxis: 'y',
                 plugins: {
                     legend: { labels: { boxWidth: 10, boxHeight: 10, usePointStyle: true } },
-                    tooltip: { backgroundColor: '#0e1728', borderColor: '#223252', borderWidth: 1,
-                        titleColor: '#E8EDF6', bodyColor: '#c9d3e6', padding: 10, cornerRadius: 6,
+                    tooltip: { backgroundColor: '#FFFFFF', borderColor: '#D9E0E8', borderWidth: 1,
+                        titleColor: '#1F2937', bodyColor: '#475467', padding: 10, cornerRadius: 6,
                         callbacks: { afterLabel: ctx => 'AHT (DSATs): ' + fmtHandleTime(arr[ctx.dataIndex]
                                 .aht) } }
                 }
@@ -3673,7 +3721,7 @@
             html += '<tr><td class="hm-row-label">DSATs</td>';
             cells.forEach((c, h) => {
                 const t01 = c.dsats / maxVal;
-                const color = c.dsats === 0 ? '#141f36' : lerpColor('16213A', 'FF6B4A', t01);
+                const color = c.dsats === 0 ? '#EEF2F6' : lerpColor('16213A', 'FF6B4A', t01);
                 const label = c.dsats === 0 ? '' : Math.round(c.dsats);
                 html += '<td><div class="hm-cell" style="background:' + color + '" title="' + h + ':00 · ' + c
                     .n + ' contacts, ' + c.dsats + ' dsats">' + label + '</div></td>';
@@ -3902,13 +3950,13 @@
             }));
             const otherData = triggerKeys.map(t => validRows.filter(r => r.dissatTrigger === t && r.specificParam &&
                 !paramKeys.includes(r.specificParam)).length);
-            if (otherData.some(v => v > 0)) datasets.push({ label: 'Other', data: otherData, backgroundColor: '#3a4a68',
+            if (otherData.some(v => v > 0)) datasets.push({ label: 'Other', data: otherData, backgroundColor: '#98A2B3',
                 borderRadius: 3 });
             const opts = baseOpts({
                 indexAxis: 'y',
                 scales: {
-                    x: { stacked: true, grid: { color: '#1a2740' }, ticks: { color: '#8593AC' } },
-                    y: { stacked: true, grid: { color: '#1a2740' }, ticks: { color: '#8593AC', autoSkip: false } }
+                    x: { stacked: true, grid: { color: '#E5E7EB' }, ticks: { color: '#667085' } },
+                    y: { stacked: true, grid: { color: '#E5E7EB' }, ticks: { color: '#667085', autoSkip: false } }
                 }
             });
             upsertChart('triggerChart', 'bar', { labels: triggerKeys, datasets }, opts);
@@ -3987,12 +4035,12 @@
                 interaction: { mode: 'index', intersect: false },
                 plugins: {
                     legend: { labels: { boxWidth: 10, boxHeight: 10, usePointStyle: true } },
-                    tooltip: { backgroundColor: '#0e1728', borderColor: '#223252', borderWidth: 1,
-                        titleColor: '#E8EDF6', bodyColor: '#c9d3e6', padding: 10, cornerRadius: 6 }
+                    tooltip: { backgroundColor: '#FFFFFF', borderColor: '#D9E0E8', borderWidth: 1,
+                        titleColor: '#1F2937', bodyColor: '#475467', padding: 10, cornerRadius: 6 }
                 },
                 scales: {
-                    x: { grid: { color: '#1a2740' }, ticks: { color: '#8593AC' } },
-                    y: { grid: { color: '#1a2740' }, ticks: { color: '#8593AC' }, beginAtZero: true }
+                    x: { grid: { color: '#E5E7EB' }, ticks: { color: '#667085' } },
+                    y: { grid: { color: '#E5E7EB' }, ticks: { color: '#667085' }, beginAtZero: true }
                 }
             }, extra || {});
         }
