@@ -996,6 +996,95 @@
         }
 
 
+
+        /* ===== LIGHT-MODE DEEP ANALYSIS =====
+           Deep Analysis remains visible for Raw, Scrub, or Raw + Scrub.
+           These colors intentionally stay light even though the main dashboard
+           uses the dark Signal Room theme. */
+        .deep-analysis-section {
+            background: #f7f9fc;
+            border: 1px solid #dfe5ec;
+            border-radius: 10px;
+            padding: 12px 14px;
+            margin-top: 26px;
+        }
+        .deep-analysis-section h2 {
+            color: #1f2937;
+        }
+        .deep-analysis-section h2 .num {
+            color: #d95c3a;
+        }
+        .deep-analysis-section p {
+            color: #667085;
+        }
+        .deep-analysis-grid .panel {
+            background: #ffffff;
+            border-color: #dfe5ec;
+            color: #1f2937;
+            box-shadow: 0 2px 8px rgba(16, 24, 40, .05);
+        }
+        .deep-analysis-grid .panel-head h3 {
+            color: #1f2937;
+        }
+        .deep-analysis-grid .panel-head .sub {
+            color: #667085;
+        }
+        .deep-analysis-grid #insightsPanel li {
+            background: #f8fafc;
+            border-color: #e4e7ec;
+            color: #344054;
+        }
+        .deep-analysis-grid #insightsPanel li b {
+            color: #1f2937;
+        }
+        .deep-analysis-grid #insightsPanel li .ico.r {
+            background: #fff1ed;
+            color: #d95c3a;
+        }
+        .deep-analysis-grid #insightsPanel li .ico.g {
+            background: #ecfdf3;
+            color: #16835b;
+        }
+        .deep-analysis-grid #insightsPanel li .ico.a {
+            background: #fffaeb;
+            color: #b54708;
+        }
+        .deep-analysis-grid #insightsPanel li .ico.i {
+            background: #eff8ff;
+            color: #175cd3;
+        }
+        .deep-analysis-grid table.datatable th {
+            background: #ffffff;
+            color: #667085;
+            border-bottom-color: #dfe5ec;
+        }
+        .deep-analysis-grid table.datatable th:hover {
+            color: #1f2937;
+        }
+        .deep-analysis-grid table.datatable td {
+            color: #344054;
+            border-bottom-color: #eaecf0;
+        }
+        .deep-analysis-grid table.datatable tbody tr:hover {
+            background: #f8fafc;
+        }
+        .deep-analysis-grid .badge-vital {
+            background: #ecfdf3;
+            color: #16835b;
+        }
+        .deep-analysis-grid .badge-flag {
+            background: #fffaeb;
+            color: #b54708;
+        }
+        .deep-analysis-grid input[type="text"] {
+            background: #ffffff !important;
+            border-color: #d0d5dd !important;
+            color: #344054 !important;
+        }
+        .deep-analysis-grid input[type="text"]::placeholder {
+            color: #98a2b3;
+        }
+
         @media (max-width:1100px) {
             .kpi-strip {
                 grid-template-columns: repeat(2, 1fr);
@@ -1469,11 +1558,11 @@
             </div>
 
             <!-- Section: deep analysis -->
-            <div class="section-head">
+            <div class="section-head dv-any deep-analysis-section">
                 <div><h2><span class="num">03</span> Deep Analysis</h2><p>Auto-generated read on the filtered slice — root cause, agent scorecards and recontact patterns.</p></div>
             </div>
 
-            <div class="grid2 dv-raw">
+            <div class="grid2 dv-any deep-analysis-grid">
                 <div class="panel mobile-hide" id="insightsPanel">
                     <div class="panel-head"><h3>Auto insights</h3><span class="sub">rule-based, recomputed live</span></div>
                     <ul id="insightsList"></ul>
@@ -1492,7 +1581,7 @@
                 </div>
             </div>
 
-            <div class="grid2 dv-raw" style="margin-top:14px;">
+            <div class="grid2 dv-any deep-analysis-grid" style="margin-top:14px;">
                 <div class="panel">
                     <div class="panel-head">
                         <h3>Agent scorecard</h3>
@@ -3189,7 +3278,7 @@
             document.querySelectorAll('.dv-raw').forEach(el => { el.style.display = showRaw ? '' : 'none'; });
             document.querySelectorAll('.dv-scrub').forEach(el => { el.style.display = showScrub ? '' : 'none'; });
             // dv-any: sections that should stay visible under EITHER view
-            // (Reason & Trend Signals, DSAT Hour Signal) — they fall back
+            // (Reason & Trend Signals, DSAT Hour Signal, and Deep Analysis) — they fall back
             // to rendering off the Scrub sheet's own L1/L3/Hr/Agent columns
             // when Raw is unchecked, so they only fully disappear when
             // neither view is on (which onChange() already prevents).
@@ -3228,10 +3317,18 @@
             renderL3Chart(sec1Rows, sec1Schema, sec1Overlay);
             renderAgentChart(sec1Rows, sec1Schema);
             renderHeatmap(sec1Rows, sec1Schema);
-            renderInsights(filtered, scrubFiltered);
-            renderPareto(filtered);
-            renderScorecard(filtered);
-            renderRecontactBreakdown(filtered);
+            // Deep Analysis follows the selected primary dataset. In Scrub-only
+            // mode this prevents the section from rendering against the Raw sheet
+            // and appearing empty/hidden.
+            const deepRows = scrubOnlyView ? scrubFiltered : filtered;
+            const deepSchema = scrubOnlyView ? (state.scrubSchema || 'dsats') : state.schema;
+            state.deepRows = deepRows;
+            state.deepSchema = deepSchema;
+
+            renderInsights(deepRows, scrubFiltered);
+            renderPareto(deepRows, deepSchema);
+            renderScorecard(deepRows, deepSchema);
+            renderRecontactBreakdown(deepRows, deepSchema);
             renderTriggerChart(scrubFiltered);
             renderCrosstabs(scrubFiltered);
         }
@@ -3680,11 +3777,12 @@
             else if (mq.addListener) mq.addListener(onChange);
         })();
 
-        function renderPareto(rows) {
+        function renderPareto(rows, schema) {
+            schema = schema || state.schema;
             const g = groupBy(rows, 'l3Reason');
-            const totalDsats = rows.reduce((s, r) => s + dsatVal(r), 0);
+            const totalDsats = rows.reduce((s, r) => s + dsatValFor(r, schema), 0);
             let arr = [...g.entries()].map(([k, l]) => ({ l3: k, cases: l.length, dsats: l.reduce((s, r) => s +
-                    dsatVal(r), 0) }));
+                    dsatValFor(r, schema), 0) }));
             arr.forEach(a => a.share = pct(a.dsats, totalDsats));
             sortRows(arr, state.sortState.pareto);
             const byDsatsDesc = [...arr].sort((x, y) => y.dsats - x.dsats);
@@ -3705,18 +3803,19 @@
                     '<td data-label="Cum.%">' + c.toFixed(0) + '% ' + (c <= 80 ? '<span class="badge-vital">vital few</span>' :
                         '') + '</td></tr>';
             }).join('') || '<tr><td colspan="5" style="color:var(--muted);">No data in range.</td></tr>';
-            attachSort('paretoTable', 'pareto', arr, () => renderPareto(rows));
+            attachSort('paretoTable', 'pareto', arr, () => renderPareto(rows, schema));
         }
 
 
         // ---- agent scorecard ----
-        document.getElementById('agentSearch').addEventListener('input', () => renderScorecard(state.filtered));
+        document.getElementById('agentSearch').addEventListener('input', () => renderScorecard(state.deepRows || state.filtered, state.deepSchema || state.schema));
 
-        function renderScorecard(rows) {
+        function renderScorecard(rows, schema) {
+            schema = schema || state.schema;
             const q = document.getElementById('agentSearch').value.trim().toLowerCase();
             const g = groupBy(rows, 'agentName');
             let arr = [...g.entries()].map(([k, l]) => {
-                const dsats = l.reduce((s, r) => s + dsatVal(r), 0);
+                const dsats = l.reduce((s, r) => s + dsatValFor(r, schema), 0);
                 return { agent: k, cases: l.length, dsats, dissat: pct(dsats, l.length) };
             });
             if (q) arr = arr.filter(a => a.agent.toLowerCase().includes(q));
@@ -3731,7 +3830,7 @@
                     '<td data-label="DSAT%"><span class="cellbar" style="width:' + Math.max(4, (a.dissat / maxDissat * 36)) +
                     'px;background:' + barColor + '"></span>' + a.dissat.toFixed(1) + '%</td></tr>';
             }).join('') || '<tr><td colspan="4" style="color:var(--muted);">No agents match.</td></tr>';
-            attachSort('scoreTable', 'score', arr, () => renderScorecard(rows));
+            attachSort('scoreTable', 'score', arr, () => renderScorecard(rows, schema));
         }
 
         // ---- recontact breakdown ----
@@ -3739,10 +3838,11 @@
         // (Username for week34, USN of the user for the dsats export).
         // "Recontact" = repeat contacts beyond that user's first one;
         // only users with at least one recontact are listed.
-        function renderRecontactBreakdown(rows) {
+        function renderRecontactBreakdown(rows, schema) {
+            schema = schema || state.schema;
             const g = groupBy(rows.filter(r => r.contactUsername), 'contactUsername');
             let arr = [...g.entries()].map(([k, l]) => {
-                const dsats = l.filter(isDsatRow).length;
+                const dsats = l.filter(r => isDsatRowFor(r, schema)).length;
                 return { user: k, recontact: l.length - 1, dsatRate: pct(dsats, l.length) };
             }).filter(a => a.recontact >= 1);
             sortRows(arr, state.sortState.recontact);
@@ -3756,7 +3856,7 @@
                         maxRecontact * 36)) + 'px;background:' + barColor + '"></span>' + a.recontact +
                     '</td><td data-label="DSAT Rate">' + a.dsatRate.toFixed(1) + '%</td></tr>';
             }).join('') || '<tr><td colspan="3" style="color:var(--muted);">No recontacts in range.</td></tr>';
-            attachSort('recontactTable', 'recontact', arr, () => renderRecontactBreakdown(rows));
+            attachSort('recontactTable', 'recontact', arr, () => renderRecontactBreakdown(rows, schema));
         }
 
         // ---- Dissat Trigger x Specific Parameter/Behavior (from Scrub sheet) ----
