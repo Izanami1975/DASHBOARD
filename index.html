@@ -45,23 +45,24 @@
     </script>
 
     <style>
-        /* ===== CSS ===== */
+        /* ===== CSS LIGHT MODE ===== */
         :root {
-            --bg: #0B1220;
-            --panel: #121B2E;
-            --panel2: #16213A;
-            --line: #223252;
-            --text: #E8EDF6;
-            --muted: #8593AC;
-            --signal: #FF6B4A;
-            --signal-dim: #3a2420;
-            --good: #35D0A6;
-            --info: #5B9CFF;
-            --amber: #FFC24B;
+            --bg: #F4F6FA;
+            --panel: #FFFFFF;
+            --panel2: #F0F2F6;
+            --line: #DCE0E8;
+            --text: #1A1F2E;
+            --muted: #6B7A8F;
+            --signal: #E3523A;
+            --signal-dim: #FDE8E3;
+            --good: #2AA87A;
+            --info: #3B7DD8;
+            --amber: #D68B1C;
             --radius: 10px;
             --font-display: 'Space Grotesk', system-ui, sans-serif;
             --font-body: 'Inter', system-ui, sans-serif;
             --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+            --shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
         }
         * {
             box-sizing: border-box;
@@ -72,10 +73,7 @@
             padding: 0;
         }
         body {
-            background:
-                radial-gradient(1200px 600px at 100% -10%, #14213c 0%, transparent 60%),
-                radial-gradient(900px 500px at -10% 0%, #10192c 0%, transparent 55%),
-                var(--bg);
+            background: var(--bg);
             color: var(--text);
             font-family: var(--font-body);
             min-height: 100vh;
@@ -83,7 +81,7 @@
         }
         ::selection {
             background: var(--signal);
-            color: #0B1220;
+            color: #fff;
         }
         a {
             color: var(--info);
@@ -127,15 +125,16 @@
             justify-content: center;
             font-family: var(--font-display);
             font-weight: 700;
-            color: #0B1220;
+            color: #fff;
             font-size: 18px;
-            box-shadow: 0 0 0 1px rgba(255, 255, 255, .08), 0 6px 18px -6px rgba(255, 107, 74, .6);
+            box-shadow: 0 4px 12px rgba(227, 82, 58, 0.25);
         }
         .brand h1 {
             font-family: var(--font-display);
             font-size: 19px;
             margin: 0 0 2px;
             letter-spacing: .2px;
+            color: var(--text);
         }
         .brand p {
             margin: 0;
@@ -177,7 +176,7 @@
         }
         .btn {
             border: 1px solid var(--line);
-            background: var(--panel2);
+            background: var(--panel);
             color: var(--text);
             border-radius: 8px;
             padding: 8px 14px;
@@ -187,22 +186,29 @@
             align-items: center;
             gap: 7px;
             transition: .15s ease;
+            box-shadow: var(--shadow);
         }
         .btn:hover {
-            border-color: #3a4d78;
-            background: #1a2743;
+            border-color: #b0b8c8;
+            background: #e8ecf4;
         }
         .btn.primary {
             background: var(--signal);
             border-color: var(--signal);
-            color: #1c0c06;
+            color: #fff;
             font-weight: 600;
+            box-shadow: 0 4px 12px rgba(227, 82, 58, 0.25);
         }
         .btn.primary:hover {
-            background: #ff7d61;
+            background: #d14a33;
+            border-color: #d14a33;
         }
         .btn.ghost {
             background: transparent;
+            box-shadow: none;
+        }
+        .btn.ghost:hover {
+            background: var(--panel2);
         }
         .btn:disabled {
             opacity: .4;
@@ -222,7 +228,7 @@
             border-radius: var(--radius);
             padding: 14px 22px;
             font-size: 13px;
-            box-shadow: 0 12px 40px -8px rgba(0, 0, 0, .6);
+            box-shadow: 0 12px 40px -8px rgba(0, 0, 0, 0.15);
             display: none;
             z-index: 999;
             max-width: 380px;
@@ -272,15 +278,17 @@
             background: var(--panel);
             margin-bottom: 22px;
             transition: .15s ease;
+            box-shadow: var(--shadow);
         }
         #uploadStage.drag {
             border-color: var(--signal);
-            background: #171025;
+            background: #fef0ec;
         }
         #uploadStage h2 {
             font-family: var(--font-display);
             font-size: 24px;
             margin: 18px 0 8px;
+            color: var(--text);
         }
         #uploadStage p {
             color: var(--muted);
@@ -316,7 +324,7 @@
             display: none;
         }
         #sheetPickerWrap select {
-            background: var(--panel2);
+            background: var(--panel);
             color: var(--text);
             border: 1px solid var(--line);
             border-radius: 6px;
@@ -337,6 +345,7 @@
             border-radius: var(--radius);
             padding: 12px 16px;
             margin-bottom: 14px;
+            box-shadow: var(--shadow);
         }
         .scrub-bar-left {
             display: flex;
@@ -351,14 +360,15 @@
             display: flex;
             align-items: center;
             gap: 8px;
+            color: var(--text);
         }
         .scrub-tag {
             font-family: var(--font-mono);
             font-size: 10px;
             font-weight: 600;
             color: var(--amber);
-            border: 1px solid #4a3a1a;
-            background: #241d0c;
+            border: 1px solid #f0dbaa;
+            background: #fcf5e6;
             border-radius: 999px;
             padding: 2px 8px;
             letter-spacing: .04em;
@@ -381,7 +391,7 @@
             color: var(--muted);
         }
         #scrubSheetPickerWrap select {
-            background: var(--panel2);
+            background: var(--panel);
             color: var(--text);
             border: 1px solid var(--line);
             border-radius: 6px;
@@ -398,6 +408,7 @@
             border-radius: var(--radius);
             padding: 14px 16px;
             margin-bottom: 18px;
+            box-shadow: var(--shadow);
         }
         .filter-rail .rail-top {
             display: flex;
@@ -435,7 +446,7 @@
         }
         .slicer>button .count {
             background: var(--signal);
-            color: #1c0c06;
+            color: #fff;
             font-family: var(--font-mono);
             font-size: 10.5px;
             border-radius: 999px;
@@ -443,10 +454,12 @@
             font-weight: 600;
         }
         .slicer>button:hover {
-            border-color: #3a4d78;
+            border-color: #b0b8c8;
+            background: #e4e8f0;
         }
         .slicer.active>button {
             border-color: var(--signal);
+            background: var(--signal-dim);
         }
         .slicer-panel {
             display: none;
@@ -454,14 +467,14 @@
             top: calc(100% + 6px);
             left: 0;
             z-index: 40;
-            background: #0e1728;
+            background: var(--panel);
             border: 1px solid var(--line);
             border-radius: 9px;
             width: 230px;
             max-height: 280px;
             overflow: auto;
             padding: 8px;
-            box-shadow: 0 18px 40px -12px rgba(0, 0, 0, .6);
+            box-shadow: 0 12px 40px -8px rgba(0, 0, 0, 0.12);
         }
         .slicer.open .slicer-panel {
             display: block;
@@ -487,6 +500,10 @@
             color: var(--info);
             font-size: 11px;
             padding: 0;
+            cursor: pointer;
+        }
+        .slicer-panel .row-actions button:hover {
+            text-decoration: underline;
         }
         .slicer-opt {
             display: flex;
@@ -540,6 +557,7 @@
             border-radius: var(--radius);
             padding: 14px 18px 10px;
             margin-bottom: 18px;
+            box-shadow: var(--shadow);
         }
         .timeline-head {
             display: flex;
@@ -564,6 +582,9 @@
             height: 64px;
             display: block;
         }
+        #timelineWave rect {
+            fill: #d0d6e0;
+        }
         .slider-row {
             position: relative;
             height: 26px;
@@ -587,10 +608,10 @@
             height: 14px;
             border-radius: 50%;
             background: var(--signal);
-            border: 2px solid #0B1220;
+            border: 2px solid #fff;
             margin-top: -5px;
             cursor: grab;
-            box-shadow: 0 0 0 3px rgba(255, 107, 74, .25);
+            box-shadow: 0 0 0 3px rgba(227, 82, 58, 0.2);
         }
         .slider-row input[type=range]::-webkit-slider-runnable-track {
             height: 4px;
@@ -602,7 +623,7 @@
             height: 14px;
             border-radius: 50%;
             background: var(--signal);
-            border: 2px solid #0B1220;
+            border: 2px solid #fff;
             cursor: grab;
         }
         .slider-track {
@@ -636,6 +657,7 @@
             padding: 15px 16px 12px;
             position: relative;
             overflow: hidden;
+            box-shadow: var(--shadow);
         }
         .kpi-card .klabel {
             font-size: 11.5px;
@@ -652,6 +674,7 @@
             font-weight: 600;
             letter-spacing: -.5px;
             line-height: 1;
+            color: var(--text);
         }
         .kpi-card .kval sub {
             font-family: var(--font-body);
@@ -681,19 +704,19 @@
             position: absolute;
             right: 0;
             bottom: 0;
-            opacity: .9;
+            opacity: .6;
         }
         .kpi-card.accent-signal {
-            box-shadow: inset 3px 0 0 var(--signal);
+            box-shadow: inset 3px 0 0 var(--signal), var(--shadow);
         }
         .kpi-card.accent-good {
-            box-shadow: inset 3px 0 0 var(--good);
+            box-shadow: inset 3px 0 0 var(--good), var(--shadow);
         }
         .kpi-card.accent-info {
-            box-shadow: inset 3px 0 0 var(--info);
+            box-shadow: inset 3px 0 0 var(--info), var(--shadow);
         }
         .kpi-card.accent-amber {
-            box-shadow: inset 3px 0 0 var(--amber);
+            box-shadow: inset 3px 0 0 var(--amber), var(--shadow);
         }
 
         .section-head {
@@ -709,6 +732,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
+            color: var(--text);
         }
         .section-head h2 .num {
             color: var(--signal);
@@ -737,6 +761,7 @@
             border: 1px solid var(--line);
             border-radius: var(--radius);
             padding: 16px 18px;
+            box-shadow: var(--shadow);
         }
         .panel-head {
             display: flex;
@@ -750,6 +775,7 @@
             font-size: 13.5px;
             margin: 0;
             font-weight: 600;
+            color: var(--text);
         }
         .panel-head .sub {
             font-size: 11px;
@@ -771,15 +797,15 @@
         .toggles button.on {
             color: var(--text);
             border-color: var(--signal);
-            background: #241811;
+            background: var(--signal-dim);
         }
         .chip {
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            background: #241811;
+            background: var(--signal-dim);
             border: 1px solid var(--signal);
-            color: #ffb59f;
+            color: var(--signal);
             border-radius: 999px;
             font-size: 11px;
             padding: 3px 9px;
@@ -788,10 +814,11 @@
         .chip button {
             background: none;
             border: none;
-            color: #ffb59f;
+            color: var(--signal);
             padding: 0;
             font-size: 13px;
             line-height: 1;
+            cursor: pointer;
         }
         canvas {
             max-width: 100% !important;
@@ -885,15 +912,15 @@
             color: var(--signal);
         }
         #insightsPanel li .ico.g {
-            background: #0e2b24;
+            background: #dff0ea;
             color: var(--good);
         }
         #insightsPanel li .ico.a {
-            background: #2b2410;
+            background: #fcf0d9;
             color: var(--amber);
         }
         #insightsPanel li .ico.i {
-            background: #0e1f36;
+            background: #dce6f5;
             color: var(--info);
         }
 
@@ -929,10 +956,11 @@
         }
         table.datatable td {
             padding: 6px 8px;
-            border-bottom: 1px solid #1a2740;
+            border-bottom: 1px solid #e8ecf4;
             font-family: var(--font-mono);
             font-size: 11.3px;
             white-space: nowrap;
+            color: var(--text);
         }
         table.datatable tbody tr:hover {
             background: var(--panel2);
@@ -958,7 +986,7 @@
             border-radius: 4px;
         }
         .badge-flag {
-            background: #2b2410;
+            background: #fcf0d9;
             color: var(--amber);
             font-family: var(--font-mono);
             font-size: 9.5px;
@@ -991,7 +1019,6 @@
             border-radius: 8px;
             border: 1px dashed var(--line);
         }
-
 
         @media (max-width:1100px) {
             .kpi-strip {
@@ -1102,7 +1129,7 @@
                 justify-content: space-between;
                 gap: 10px;
                 padding: 6px 2px;
-                border-bottom: 1px solid #1a2740;
+                border-bottom: 1px solid #e8ecf4;
                 white-space: normal;
                 text-align: right;
                 max-width: none;
@@ -1160,6 +1187,7 @@
             align-items: center;
             justify-content: center;
             padding: 20px;
+            background: var(--bg);
         }
         #loginForm {
             width: 100%;
@@ -1171,6 +1199,7 @@
             display: flex;
             flex-direction: column;
             gap: 12px;
+            box-shadow: var(--shadow);
         }
         #loginForm input {
             background: var(--panel2);
@@ -1229,9 +1258,10 @@
             padding: 8px 12px;
             font-size: 12.5px;
             font-weight: 600;
+            cursor: pointer;
         }
         #offlineEntry button:hover {
-            background: rgba(91, 156, 255, .1);
+            background: rgba(59, 125, 216, .08);
         }
         #localModeBanner {
             display: none;
@@ -1241,7 +1271,7 @@
             margin-bottom: 14px;
             border-radius: 10px;
             background: var(--signal-dim);
-            border: 1px solid #5a3226;
+            border: 1px solid #f5c8bc;
             color: var(--text);
             font-size: 12.5px;
         }
@@ -1257,7 +1287,7 @@
             line-height: 1.5;
         }
         #localModeBanner .lmb-text b {
-            color: var(--amber);
+            color: var(--signal);
         }
         #localModeBanner button {
             background: transparent;
@@ -1267,6 +1297,7 @@
             padding: 6px 10px;
             font-size: 12px;
             white-space: nowrap;
+            cursor: pointer;
         }
         #localModeBanner button:hover {
             border-color: var(--info);
@@ -1289,6 +1320,14 @@
         #localBackupPill .dot {
             background: var(--amber);
         }
+        #clearLocalBackupBtn {
+            display: none;
+        }
+
+        /* Chart.js color overrides for light mode */
+        .chart-canvas-wrap canvas {
+            filter: brightness(0.98);
+        }
     </style>
 </head>
 <body>
@@ -1296,8 +1335,8 @@
     <!-- ===== AUTH GATE ===== -->
     <div id="authGate">
         <form id="loginForm">
-            <div class="mark" style="width:44px;height:44px;border-radius:10px;background:linear-gradient(145deg,var(--signal),#c94a2e);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;color:#0B1220;font-size:19px;margin-bottom:6px;">QA</div>
-            <h2 style="margin:0;font-family:var(--font-display);font-size:18px;">Sign in required</h2>
+            <div class="mark" style="width:44px;height:44px;border-radius:10px;background:linear-gradient(145deg,var(--signal),#c94a2e);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;color:#fff;font-size:19px;margin-bottom:6px;">QA</div>
+            <h2 style="margin:0;font-family:var(--font-display);font-size:18px;color:var(--text);">Sign in required</h2>
             <p style="margin:0 0 6px;color:var(--muted);font-size:12.5px;">This dashboard reads and writes live QA data. Sign in with your team account to continue.</p>
             <input type="email" id="loginEmail" placeholder="Email" autocomplete="username" required />
             <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password" required />
@@ -1348,7 +1387,7 @@
         <!-- ===== UPLOAD STAGE ===== -->
         <div id="uploadStage">
             <div class="icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8593AC" stroke-width="1.6"><path d="M12 3v12m0-12l-4 4m4-4l4 4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6B7A8F" stroke-width="1.6"><path d="M12 3v12m0-12l-4 4m4-4l4 4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
             </div>
             <h2>Drop in your QA export</h2>
             <p>Drag in ONE .xlsx file with two sheets — a <b>Raw</b> sheet (Week, Date, Case ID, Agent Name, Survey Channel, CSAT Level, Username, Email, Agent Skill, L1/L3 Reason Code, CSAT Submission, Report Date, Handle Time) and a <b>Scrub</b> sheet (Week, Submit Time, Agent Email/Name, Session ID, L1/L3 Reason Code Name, Dissat Trigger, Specific Parameter/Behavior, Correct RC tagging, Evaluator, etc.). Both sheets are detected automatically and shown together in the dashboard — no second upload needed. Plain single-sheet exports still work too.</p>
@@ -1403,7 +1442,6 @@
                 </div>
                 <div class="slicer-grid" id="slicerGrid"></div>
             </div>
-
 
             <!-- timeline -->
             <div class="timeline-box mobile-hide">
@@ -1669,7 +1707,7 @@
         };
 
         // --------------------------------------------------------------
-        // 3. HEADER MAPPING + PARSING
+        // 3. HEADER MAPPING + PARSING (same as before)
         // --------------------------------------------------------------
         const HEADER_RULES = [
             [/^week$/i, 'week'],
@@ -1901,7 +1939,7 @@
         }
 
         // --------------------------------------------------------------
-        // 4. SAMPLE DATA
+        // 4. SAMPLE DATA GENERATOR
         // --------------------------------------------------------------
         function generateSample() {
             const agents = ['A. Santos', 'B. Cruz', 'C. Reyes', 'D. Tan', 'E. Garcia', 'F. Bautista', 'G. Lim',
@@ -2095,6 +2133,7 @@
             const normalized = normalizeRows(rawRows);
             state.data = normalized;
             state.lastUploadedRows = normalized.length;
+
             saveLocalBackup(rawRows, { fileName: state.lastFileName });
 
             const mappedCount = Object.keys(CANON_LABEL).filter(k => normalized.some(r => r[k] !== undefined && r[k] !==
@@ -2191,6 +2230,7 @@
             if (dvLabelClear) dvLabelClear.textContent = '🗂️ Raw Data';
             if (state.data.length) render();
         }
+
 
         // --------------------------------------------------------------
         // 7. SAVE TO FIREBASE
@@ -2863,6 +2903,7 @@
             return baseFiltered(null, state.scrubData).filter(inRange);
         }
 
+
         // --------------------------------------------------------------
         // 10. TIMELINE
         // --------------------------------------------------------------
@@ -2932,7 +2973,7 @@
                 const v = byDay.get(k) || 0;
                 const bh = (v / max) * h * 0.92;
                 bars += '<rect x="' + (i * bw + 0.5) + '" y="' + (h - bh) + '" width="' + Math.max(0.6, bw - 1) +
-                    '" height="' + bh + '" fill="#2a3d63" />';
+                    '" height="' + bh + '" fill="#d0d6e0" />';
             });
             svg.innerHTML = bars;
         }
@@ -3044,7 +3085,7 @@
         }
 
         // --------------------------------------------------------------
-        // 13. MAIN RENDER — conditionally renders only visible panels
+        // 13. MAIN RENDER
         // --------------------------------------------------------------
         function applyDataView() {
             const showRaw = state.dataView.raw;
@@ -3063,31 +3104,18 @@
                 .length.toLocaleString() + ' rows in view';
             syncTimelineUI(true);
 
-            // KPIs always render; they handle visibility internally.
             renderKPIs(filtered);
-
-            // === RAW-DATA PANELS (only when Raw view is on) ===
-            if (state.dataView.raw) {
-                renderTrendChart(filtered);
-                renderL1Chart(filtered);
-                renderL3Chart(filtered);
-                renderAgentChart(filtered);
-                renderHeatmap(filtered);
-                renderInsights(filtered, scrubFiltered);
-                renderPareto(filtered);
-                renderScorecard(filtered);
-                renderRecontactBreakdown(filtered);
-            }
-
-            // === SCRUB-DATA PANELS (only when Scrub view is on) ===
-            if (state.dataView.scrub) {
-                // Give the browser a microtask to ensure scrub panels are
-                // visible before Chart.js measures canvas dimensions.
-                queueMicrotask(() => {
-                    renderTriggerChart(scrubFiltered);
-                    renderCrosstabs(scrubFiltered);
-                });
-            }
+            renderTrendChart(filtered);
+            renderL1Chart(filtered);
+            renderL3Chart(filtered);
+            renderAgentChart(filtered);
+            renderHeatmap(filtered);
+            renderInsights(filtered, scrubFiltered);
+            renderPareto(filtered);
+            renderScorecard(filtered);
+            renderRecontactBreakdown(filtered);
+            renderTriggerChart(scrubFiltered);
+            renderCrosstabs(scrubFiltered);
         }
 
         // ---- KPIs ----
@@ -3177,7 +3205,7 @@
                     }
                 });
                 const path = sparkPath(series, 96, 34);
-                const color = { info: '#5B9CFF', signal: '#FF6B4A', amber: '#FFC24B', good: '#35D0A6' }[def
+                const color = { info: '#3B7DD8', signal: '#E3523A', amber: '#D68B1C', good: '#2AA87A' }[def
                 .accent];
                 const card = document.createElement('div');
                 card.className = 'kpi-card accent-' + def.accent;
@@ -3187,7 +3215,7 @@
                     '<div class="kdelta ' + deltaCls + '">' + (deltaCls === 'up' ? '\u25B2' : deltaCls ===
                         'down' ? '\u25BC' : '\u2013') + ' ' + deltaTxt + '</div>' +
                     '<svg class="spark" width="96" height="34" viewBox="0 0 96 34"><path d="' + path +
-                    '" fill="none" stroke="' + color + '" stroke-width="1.6" opacity="0.85"/></svg>';
+                    '" fill="none" stroke="' + color + '" stroke-width="1.6" opacity="0.6"/></svg>';
                 strip.appendChild(card);
             });
         }
@@ -3236,14 +3264,14 @@
                 scrubData = days.map(d => scrubByDay.get(d) || 0);
             }
             const datasets = [
-                { label: 'Surveys', data: casesData, borderColor: '#5B9CFF', backgroundColor: 'rgba(91,156,255,.12)',
+                { label: 'Surveys', data: casesData, borderColor: '#3B7DD8', backgroundColor: 'rgba(59,125,216,.12)',
                     fill: true, tension: .35, pointRadius: 0, borderWidth: 2 },
-                { label: 'DSATs', data: dsatsData, borderColor: '#FF6B4A', backgroundColor: 'rgba(255,107,74,.12)',
+                { label: 'DSATs', data: dsatsData, borderColor: '#E3523A', backgroundColor: 'rgba(227,82,58,.12)',
                     fill: true, tension: .35, pointRadius: 0, borderWidth: 2 }
             ];
             if (scrubOn) {
-                datasets.push({ label: 'Scrub', data: scrubData, borderColor: '#FFC24B',
-                    backgroundColor: 'rgba(255,194,75,.12)', fill: true, tension: .35, pointRadius: 0, borderWidth: 2,
+                datasets.push({ label: 'Scrub', data: scrubData, borderColor: '#D68B1C',
+                    backgroundColor: 'rgba(214,139,28,.12)', fill: true, tension: .35, pointRadius: 0, borderWidth: 2,
                     borderDash: [4, 3] });
             }
             upsertChart('trendChart', 'line', { labels, datasets }, baseOpts({ stacked: false }));
@@ -3261,7 +3289,7 @@
             const datasets = [{
                 label: scrubOn ? 'Primary' : 'Cases',
                 data: arr.map(a => a.n),
-                backgroundColor: scrubOn ? '#5B9CFF' : arr.map(a => lerpColor('35D0A6', 'FF6B4A', a.rate / Math.max(
+                backgroundColor: scrubOn ? '#3B7DD8' : arr.map(a => lerpColor('2AA87A', 'E3523A', a.rate / Math.max(
                     maxRate, 40))),
                 borderRadius: 4
             }];
@@ -3270,7 +3298,8 @@
             if (scrubOn) {
                 scrubG = groupBy(state.scrubData, 'l1Reason');
                 datasets.push({ label: 'Scrub', data: arr.map(a => (scrubG.get(a.k) || []).length),
-                    backgroundColor: '#FFC24B', borderRadius: 4 });
+                    backgroundColor: '#D68B1C', borderRadius: 4 });
+
                 const totalPrimary = arr.reduce((s, a) => s + a.n, 0);
                 const totalScrubTop = arr.reduce((s, a) => s + (scrubG.get(a.k) || []).length, 0);
                 const totalBoth = totalPrimary + totalScrubTop;
@@ -3287,8 +3316,8 @@
                 indexAxis: 'y',
                 plugins: {
                     legend: { labels: { boxWidth: 10, boxHeight: 10, usePointStyle: true } },
-                    tooltip: { backgroundColor: '#0e1728', borderColor: '#223252', borderWidth: 1,
-                        titleColor: '#E8EDF6', bodyColor: '#c9d3e6', padding: 10, cornerRadius: 6,
+                    tooltip: { backgroundColor: '#fff', borderColor: '#DCE0E8', borderWidth: 1,
+                        titleColor: '#1A1F2E', bodyColor: '#1A1F2E', padding: 10, cornerRadius: 6,
                         callbacks: !scrubOn ? undefined : { afterLabel: ctx => {
                                 const a = arr[ctx.dataIndex];
                                 const scrubCount = (scrubG.get(a.k) || []).length;
@@ -3324,12 +3353,12 @@
                     dsatVal(r), 0) }))
                 .sort((a, b) => b.n - a.n).slice(0, 10);
             const scrubOn = !!(state.scrubApplied && state.scrubData && state.scrubData.length);
-            const datasets = [{ label: scrubOn ? 'Primary' : 'Cases', data: arr.map(a => a.n), backgroundColor: '#5B9CFF',
+            const datasets = [{ label: scrubOn ? 'Primary' : 'Cases', data: arr.map(a => a.n), backgroundColor: '#3B7DD8',
                 borderRadius: 4 }];
             if (scrubOn) {
                 const scrubG = groupBy(state.scrubData, 'l3Reason');
                 datasets.push({ label: 'Scrub', data: arr.map(a => (scrubG.get(a.k) || []).length),
-                    backgroundColor: '#FFC24B', borderRadius: 4 });
+                    backgroundColor: '#D68B1C', borderRadius: 4 });
             }
             sizeChartWrap('l3ChartWrap', arr.length, 34);
             const opts = baseOpts({ indexAxis: 'y' });
@@ -3365,8 +3394,8 @@
                 indexAxis: 'y',
                 plugins: {
                     legend: { labels: { boxWidth: 10, boxHeight: 10, usePointStyle: true } },
-                    tooltip: { backgroundColor: '#0e1728', borderColor: '#223252', borderWidth: 1,
-                        titleColor: '#E8EDF6', bodyColor: '#c9d3e6', padding: 10, cornerRadius: 6,
+                    tooltip: { backgroundColor: '#fff', borderColor: '#DCE0E8', borderWidth: 1,
+                        titleColor: '#1A1F2E', bodyColor: '#1A1F2E', padding: 10, cornerRadius: 6,
                         callbacks: { afterLabel: ctx => 'AHT (DSATs): ' + fmtHandleTime(arr[ctx.dataIndex]
                                 .aht) } }
                 }
@@ -3375,7 +3404,7 @@
             upsertChart('agentChart', 'bar', {
                 labels: arr.map(a => a.k),
                 datasets: [{ label: 'Dissat rate %', data: arr.map(a => +a.rate.toFixed(1)), backgroundColor: state
-                        .agentSort === 'worst' ? '#FF6B4A' : '#35D0A6', borderRadius: 4 }]
+                        .agentSort === 'worst' ? '#E3523A' : '#2AA87A', borderRadius: 4 }]
             }, opts);
         }
 
@@ -3398,7 +3427,7 @@
             html += '<tr><td class="hm-row-label">DSATs</td>';
             cells.forEach((c, h) => {
                 const t01 = c.dsats / maxVal;
-                const color = c.dsats === 0 ? '#141f36' : lerpColor('16213A', 'FF6B4A', t01);
+                const color = c.dsats === 0 ? '#e8ecf4' : lerpColor('DCE0E8', 'E3523A', t01);
                 const label = c.dsats === 0 ? '' : Math.round(c.dsats);
                 html += '<td><div class="hm-cell" style="background:' + color + '" title="' + h + ':00 · ' + c
                     .n + ' contacts, ' + c.dsats + ' dsats">' + label + '</div></td>';
@@ -3525,6 +3554,7 @@
             attachSort('paretoTable', 'pareto', arr, () => renderPareto(rows));
         }
 
+
         // ---- agent scorecard ----
         document.getElementById('agentSearch').addEventListener('input', () => renderScorecard(state.filtered));
 
@@ -3540,7 +3570,7 @@
             const maxDissat = Math.max(1, ...arr.map(a => a.dissat));
             const tbody = document.querySelector('#scoreTable tbody');
             tbody.innerHTML = arr.map(a => {
-                const barColor = lerpColor('35D0A6', 'FF6B4A', a.dissat / maxDissat);
+                const barColor = lerpColor('2AA87A', 'E3523A', a.dissat / maxDissat);
                 return '<tr><td data-label="Agent" style="font-family:var(--font-body);">' + escapeHtml(a.agent) +
                     '</td>' +
                     '<td data-label="Cases">' + a.cases + '</td><td data-label="DSATs">' + a.dsats + '</td>' +
@@ -3561,7 +3591,7 @@
             const maxRecontact = Math.max(1, ...arr.map(a => a.recontact));
             const tbody = document.querySelector('#recontactTable tbody');
             tbody.innerHTML = arr.map(a => {
-                const barColor = lerpColor('5B9CFF', 'FFC24B', a.recontact / maxRecontact);
+                const barColor = lerpColor('3B7DD8', 'D68B1C', a.recontact / maxRecontact);
                 return '<tr><td data-label="Username" style="font-family:var(--font-body);">' + escapeHtml(a
                         .user) + '</td>' +
                     '<td data-label="Recontact"><span class="cellbar" style="width:' + Math.max(4, (a.recontact /
@@ -3571,7 +3601,7 @@
             attachSort('recontactTable', 'recontact', arr, () => renderRecontactBreakdown(rows));
         }
 
-        // ---- Dissat Trigger chart ----
+        // ---- Dissat Trigger x Specific Parameter/Behavior ----
         const PROCESS_POLICY_RE = /process|polic(?:y|ies)/i;
 
         function isProcessPolicyRow(r) {
@@ -3603,7 +3633,7 @@
             const byParam = groupBy(scoped, 'specificParam');
             const paramKeys = [...byParam.entries()].map(([k, l]) => ({ k, n: l.length })).sort((a, b) => b.n -
                 a.n).slice(0, 6).map(a => a.k);
-            const palette = ['#5B9CFF', '#FF6B4A', '#FFC24B', '#35D0A6', '#B18CFF', '#66D9EF'];
+            const palette = ['#3B7DD8', '#E3523A', '#D68B1C', '#2AA87A', '#8B6BCF', '#4CB8C4'];
             const datasets = paramKeys.map((p, i) => ({
                 label: p,
                 data: triggerKeys.map(t => scoped.filter(r => r.dissatTrigger === t && r.specificParam === p)
@@ -3613,13 +3643,13 @@
             }));
             const otherData = triggerKeys.map(t => validRows.filter(r => r.dissatTrigger === t && r.specificParam &&
                 !paramKeys.includes(r.specificParam)).length);
-            if (otherData.some(v => v > 0)) datasets.push({ label: 'Other', data: otherData, backgroundColor: '#3a4a68',
+            if (otherData.some(v => v > 0)) datasets.push({ label: 'Other', data: otherData, backgroundColor: '#A0AEC0',
                 borderRadius: 3 });
             const opts = baseOpts({
                 indexAxis: 'y',
                 scales: {
-                    x: { stacked: true, grid: { color: '#1a2740' }, ticks: { color: '#8593AC' } },
-                    y: { stacked: true, grid: { color: '#1a2740' }, ticks: { color: '#8593AC', autoSkip: false } }
+                    x: { stacked: true, grid: { color: '#e8ecf4' }, ticks: { color: '#6B7A8F' } },
+                    y: { stacked: true, grid: { color: '#e8ecf4' }, ticks: { color: '#6B7A8F', autoSkip: false } }
                 }
             });
             upsertChart('triggerChart', 'bar', { labels: triggerKeys, datasets }, opts);
@@ -3651,13 +3681,14 @@
                         '" style="font-family:var(--font-body);">' + escapeHtml(String(a.cat)) +
                         '</td><td data-label="Cases">' + a.n + '</td>' +
                         '<td data-label="Recontact%"><span class="cellbar" style="width:' + Math.max(4, a
-                            .rate / maxRate * 36) + 'px;background:' + lerpColor('35D0A6', 'FFC24B', a.rate /
+                            .rate / maxRate * 36) + 'px;background:' + lerpColor('2AA87A', 'D68B1C', a.rate /
                             maxRate) + '"></span>' + a.rate.toFixed(1) + '%</td></tr>').join('');
                 html += '</tbody></table></div>';
                 return html;
             }
             wrap.innerHTML = crosstab('eddStatus', 'EDD Status') + crosstab('gdtStatus', 'GDT Status');
         }
+
 
         // ---- sorting helpers ----
         function sortRows(arr, s) {
@@ -3697,12 +3728,12 @@
                 interaction: { mode: 'index', intersect: false },
                 plugins: {
                     legend: { labels: { boxWidth: 10, boxHeight: 10, usePointStyle: true } },
-                    tooltip: { backgroundColor: '#0e1728', borderColor: '#223252', borderWidth: 1,
-                        titleColor: '#E8EDF6', bodyColor: '#c9d3e6', padding: 10, cornerRadius: 6 }
+                    tooltip: { backgroundColor: '#fff', borderColor: '#DCE0E8', borderWidth: 1,
+                        titleColor: '#1A1F2E', bodyColor: '#1A1F2E', padding: 10, cornerRadius: 6 }
                 },
                 scales: {
-                    x: { grid: { color: '#1a2740' }, ticks: { color: '#8593AC' } },
-                    y: { grid: { color: '#1a2740' }, ticks: { color: '#8593AC' }, beginAtZero: true }
+                    x: { grid: { color: '#e8ecf4' }, ticks: { color: '#6B7A8F' } },
+                    y: { grid: { color: '#e8ecf4' }, ticks: { color: '#6B7A8F' }, beginAtZero: true }
                 }
             }, extra || {});
         }
@@ -3808,6 +3839,9 @@
             showLocalModeBanner('Viewing offline — not signed in to Firebase.', backup);
         });
 
+        // --------------------------------------------------------------
+        // 17b. INACTIVITY AUTO-LOGOUT
+        // --------------------------------------------------------------
         const INACTIVITY_LIMIT_MS = 5 * 60 * 1000;
         const ACTIVITY_EVENTS = ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart', 'click'];
         let inactivityTimer = null;
