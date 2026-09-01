@@ -388,7 +388,9 @@
             padding: 4px 6px;
             font-size: 12px;
         }
-        #scrubFilePill .dot { background: var(--amber); }
+        #scrubFilePill .dot {
+            background: var(--amber);
+        }
 
         .filter-rail {
             background: var(--panel);
@@ -796,11 +798,6 @@
             max-height: 230px !important;
             width: 100% !important;
         }
-        /* l1/l3/agent charts are horizontal bar charts whose height needs
-           to grow with the number of categories, or Chart.js auto-skips
-           every other y-axis label to avoid overlap (looks like missing
-           names). JS sets this wrapper's height per render; the canvas
-           inside is exempted from the global 230px cap so it can fill it. */
         .chart-canvas-wrap {
             position: relative;
             width: 100%;
@@ -1008,13 +1005,11 @@
         }
 
         /* ===== MOBILE / SMALL SCREENS ===== */
-        html, body {
+        html,
+        body {
             overflow-x: hidden;
         }
         @media (max-width:720px) {
-            /* Mobile shows only the Root-cause Pareto (top 5), Agent
-               scorecard and Recontact breakdown panels — everything else
-               in the dashboard body is hidden on small screens. */
             .mobile-hide {
                 display: none !important;
             }
@@ -1077,13 +1072,6 @@
             table.datatable {
                 font-size: 11px;
             }
-
-            /* Responsive tables: stack each row into a label/value card
-               instead of forcing horizontal scroll. Since every data table
-               in the dashboard (Pareto, Agent scorecard, Evaluator tagging,
-               the recontact crosstabs, and any future table) shares the
-               .datatable class, this one rule set makes all of them
-               responsive consistently. */
             .table-scroll {
                 max-height: none;
                 overflow: visible;
@@ -1224,7 +1212,9 @@
             gap: 8px;
             text-align: left;
         }
-        #offlineEntry.show { display: flex; }
+        #offlineEntry.show {
+            display: flex;
+        }
         #offlineEntry p {
             margin: 0;
             font-size: 12px;
@@ -1240,7 +1230,9 @@
             font-size: 12.5px;
             font-weight: 600;
         }
-        #offlineEntry button:hover { background: rgba(91,156,255,.1); }
+        #offlineEntry button:hover {
+            background: rgba(91, 156, 255, .1);
+        }
         #localModeBanner {
             display: none;
             align-items: center;
@@ -1253,10 +1245,20 @@
             color: var(--text);
             font-size: 12.5px;
         }
-        #localModeBanner.show { display: flex; }
-        #localModeBanner .lmb-ico { font-size: 15px; flex-shrink: 0; }
-        #localModeBanner .lmb-text { flex: 1; line-height: 1.5; }
-        #localModeBanner .lmb-text b { color: var(--amber); }
+        #localModeBanner.show {
+            display: flex;
+        }
+        #localModeBanner .lmb-ico {
+            font-size: 15px;
+            flex-shrink: 0;
+        }
+        #localModeBanner .lmb-text {
+            flex: 1;
+            line-height: 1.5;
+        }
+        #localModeBanner .lmb-text b {
+            color: var(--amber);
+        }
         #localModeBanner button {
             background: transparent;
             border: 1px solid var(--line);
@@ -1266,7 +1268,10 @@
             font-size: 12px;
             white-space: nowrap;
         }
-        #localModeBanner button:hover { border-color: var(--info); color: var(--info); }
+        #localModeBanner button:hover {
+            border-color: var(--info);
+            color: var(--info);
+        }
         #localModeBanner .lmb-close {
             border: none;
             padding: 4px 6px;
@@ -1278,8 +1283,12 @@
             align-items: center;
             gap: 6px;
         }
-        #localBackupPill.show { display: inline-flex; }
-        #localBackupPill .dot { background: var(--amber); }
+        #localBackupPill.show {
+            display: inline-flex;
+        }
+        #localBackupPill .dot {
+            background: var(--amber);
+        }
     </style>
 </head>
 <body>
@@ -1580,11 +1589,6 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app, "shopeemydb2026");
         const auth = getAuth(app);
-        // Session-only persistence: the sign-in only survives for as long as
-        // this browser tab/window stays open. Closing the browser (not just
-        // navigating away) clears it, similar to a server-side session that
-        // dies when the connection ends. Reloading the same tab keeps you
-        // signed in; opening a new tab/window does not.
         setPersistence(auth, browserSessionPersistence).catch((err) => {
             console.warn('Could not set session persistence:', err);
         });
@@ -1593,9 +1597,9 @@
         // 2. STATE
         // --------------------------------------------------------------
         const state = {
-            schema: 'dsats', // 'dsats' (total.xlsx) or 'week34' (Week 34 Surveys.xlsx)
-            data: [], // normalized rows (for dashboard)
-            rawRows: [], // raw rows with original headers (for Firebase)
+            schema: 'dsats',
+            data: [],
+            rawRows: [],
             filtered: [],
             filterValues: {},
             filterOptions: {},
@@ -1613,29 +1617,17 @@
             chartReady: false,
             isSaving: false,
             lastUploadedRows: 0,
-            firebaseCollection: 'table', // collection name in Firestore
+            firebaseCollection: 'table',
             periodFilter: { mode: 'day', day: new Set(), week: new Set(), month: new Set() },
-            // Scrub-sheet dataset (2nd sheet of the same workbook), used to
-            // correlate against the Raw sheet — see section 6b. Detected
-            // and loaded automatically; no separate upload required.
             rawSheetName: null,
             scrubSheetName: null,
             scrubRawRows: null,
             scrubData: null,
             scrubApplied: false,
             scrubFileName: null,
-            // Data View toggle: which dataset's KPIs/panels are shown.
-            // Default is Raw only; the dropdown lets either be turned on/off
-            // independently (both on shows everything, as before).
             dataView: { raw: true, scrub: false }
         };
 
-        // Evaluator, Tenure, Correct RC Tag and Recontact were removed as
-        // slicers (mostly-"Unspecified" values, low filtering value).
-        // 'fulfilmentChannel' has no standalone button — its options are
-        // nested inside the Delivery Issue panel, shown only once "Yes"
-        // is checked (see buildDeliveryIssuePanel()) — but it stays in
-        // this array so baseFiltered()/resetFiltersBtn still know about it.
         const SLICER_FIELDS = [
             { key: 'agentName', label: 'Agent' },
             { key: 'coach', label: 'Coach' },
@@ -1646,9 +1638,6 @@
             { key: 'deliveryIssue', label: 'Delivery Issue' }
         ];
 
-        // Config for the Day / Week / Month period filter. `key` is the row
-        // field to match against; `sortKey` (optional) is used for ordering
-        // options chronologically; `display` renders the checkbox label.
         const PERIOD_MODES = {
             day: {
                 label: 'Day',
@@ -1680,7 +1669,7 @@
         };
 
         // --------------------------------------------------------------
-        // 3. HEADER MAPPING + PARSING (same as index.html)
+        // 3. HEADER MAPPING + PARSING
         // --------------------------------------------------------------
         const HEADER_RULES = [
             [/^week$/i, 'week'],
@@ -1773,10 +1762,7 @@
                 if (d) return new Date(Date.UTC(d.y, d.m - 1, d.d, d.H || 0, d.M || 0, Math.floor(d.S || 0)));
             }
             let s = String(v).trim();
-            // Normalize odd unicode spaces (narrow no-break space etc.) some exports use.
             s = s.replace(/[\u00A0\u202F\u2009\u2007]/g, ' ').replace(/\s+/g, ' ').trim();
-            // Some Submit Time exports look like "12:47:49 AM / Friday, May 1, 2026" —
-            // JS can't parse that order directly, so flip it to "<date> <time>".
             const slashMatch = s.match(/^(.*?)\s*\/\s*(.*)$/);
             if (slashMatch) {
                 const combined = slashMatch[2].trim() + ' ' + slashMatch[1].trim();
@@ -1819,7 +1805,6 @@
             return wd[d.getDay()] + ', ' + m[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
         }
 
-        // Normalize rows: map headers to canonical keys
         function normalizeRows(rawRows) {
             return rawRows.map(raw => {
                 const row = {};
@@ -1880,10 +1865,6 @@
             });
         }
 
-        // Detects which of the two supported export formats a set of raw
-        // rows came from. 'week34' = per-survey export with a CSAT Level
-        // column (Good/Bad) and a Username column, covering ALL surveys.
-        // 'dsats' = the original per-DSAT-case export (total.xlsx).
         function detectSchema(rawRows) {
             const headers = rawRows.length ? Object.keys(rawRows[0]) : [];
             const has = re => headers.some(h => re.test(String(h).trim()));
@@ -1891,11 +1872,6 @@
             return 'dsats';
         }
 
-        // Classifies a sheet's rows as 'raw' (the per-survey Week 34-style
-        // export: CSAT Level + Username, no QA-review fields) or 'scrub'
-        // (the QA/DSAT-review export: Dissat Trigger / Evaluator / Correct
-        // RC tagging / Specific Parameter present). Returns null if neither
-        // signature is present, so callers can fall back gracefully.
         function classifySheet(rawRows) {
             const headers = rawRows.length ? Object.keys(rawRows[0]) : [];
             const has = re => headers.some(h => re.test(String(h).trim()));
@@ -1907,10 +1883,6 @@
             return null;
         }
 
-        // A row counts as a DSAT differently depending on the source format:
-        // - week34: one row per survey: it's a DSAT when CSAT Level is 'Bad'.
-        // - dsats: every row is a logged DSAT case; use the numDsats/dissatTrigger
-        //   fields already present in that export.
         function isDsatRow(r) {
             return state.schema === 'week34' ? r.csatLevel.toLowerCase() === 'bad' : (r.numDsats > 0 || !!r
                 .dissatTrigger);
@@ -1929,7 +1901,7 @@
         }
 
         // --------------------------------------------------------------
-        // 4. SAMPLE DATA GENERATOR (same as index.html)
+        // 4. SAMPLE DATA
         // --------------------------------------------------------------
         function generateSample() {
             const agents = ['A. Santos', 'B. Cruz', 'C. Reyes', 'D. Tan', 'E. Garcia', 'F. Bautista', 'G. Lim',
@@ -2057,15 +2029,6 @@
             reader.readAsArrayBuffer(file);
         }
 
-        // Reads every sheet in the workbook and classifies each as 'raw'
-        // (per-survey Week 34-style export) or 'scrub' (QA/DSAT review
-        // export) by header signature — see classifySheet(). If exactly
-        // one of each is found, both are loaded automatically and
-        // correlated; this is the expected shape of a combined upload.
-        // Anything else (a single plain sheet, or sheets that don't match
-        // either signature) falls back to the old single-sheet flow, with
-        // a manual sheet picker if there's more than one sheet to choose
-        // from.
         function bootFromWorkbook(wb) {
             const sheetRows = {};
             let rawName = null,
@@ -2097,9 +2060,6 @@
                 return;
             }
 
-            // Fallback: legacy single-dataset behaviour. If there's more
-            // than one sheet and we couldn't confidently tell Raw from
-            // Scrub apart, let the user pick which single sheet to load.
             document.getElementById('scrubBar').style.display = 'none';
             const dataViewBarFallback = document.getElementById('dataViewBar');
             if (dataViewBarFallback) dataViewBarFallback.style.display = 'none';
@@ -2127,7 +2087,7 @@
         }
 
         // --------------------------------------------------------------
-        // 6. BOOT FROM RAW ROWS — save raw + normalize and render dashboard
+        // 6. BOOT FROM RAW ROWS
         // --------------------------------------------------------------
         function bootFromRawRows(rawRows) {
             state.rawRows = rawRows;
@@ -2135,12 +2095,6 @@
             const normalized = normalizeRows(rawRows);
             state.data = normalized;
             state.lastUploadedRows = normalized.length;
-
-            // Mirror whatever is now on screen into the local IndexedDB
-            // backup, so it can still be viewed later if Firebase's free
-            // tier limit is reached. This runs for every source (upload,
-            // sample data, a fresh Firestore load, or the backup itself)
-            // so the cache always reflects the most recent good data.
             saveLocalBackup(rawRows, { fileName: state.lastFileName });
 
             const mappedCount = Object.keys(CANON_LABEL).filter(k => normalized.some(r => r[k] !== undefined && r[k] !==
@@ -2169,22 +2123,11 @@
         });
 
         // --------------------------------------------------------------
-        // 6b. SCRUB SHEET — 2nd sheet of the SAME workbook, correlated
+        // 6b. SCRUB SHEET
         // --------------------------------------------------------------
-        // The Scrub sheet is read and normalized through the same
-        // HEADER_RULES/normalizeRows() pipeline as the Raw sheet, so it
-        // shares the same canonical field names (agentName, l1Reason,
-        // submitTime, etc.) and can be filtered with the same slicer/
-        // timeline logic (see getFilteredScrub()). It is NOT merged into
-        // state.data — it powers its own KPI (Total Scrub), the Dissat
-        // Trigger chart and the Recontact correlation crosstab, and adds
-        // a comparison series to the Trend/L1/L3 charts. It's applied
-        // automatically since it now always arrives bundled with the Raw
-        // sheet in the same file — no separate upload/click required.
         const scrubFilePill = document.getElementById('scrubFilePill');
         const scrubFilePillTxt = document.getElementById('scrubFilePillTxt');
 
-        // ---- Data View dropdown (Raw Data / Scrub Data, either or both) ----
         (function setupDataViewDropdown() {
             const wrap = document.getElementById('dataViewSlicer');
             if (!wrap) return;
@@ -2197,8 +2140,8 @@
                 else if (state.dataView.scrub) label.textContent = '🗂️ Scrub Data';
                 else label.textContent = '🗂️ Raw Data';
             }
+
             function onChange() {
-                // At least one of the two must stay selected.
                 if (!dvRawChk.checked && !dvScrubChk.checked) dvRawChk.checked = true;
                 state.dataView.raw = dvRawChk.checked;
                 state.dataView.scrub = dvScrubChk.checked;
@@ -2248,7 +2191,6 @@
             if (dvLabelClear) dvLabelClear.textContent = '🗂️ Raw Data';
             if (state.data.length) render();
         }
-
 
         // --------------------------------------------------------------
         // 7. SAVE TO FIREBASE
@@ -2325,13 +2267,8 @@
         }
 
         // --------------------------------------------------------------
-        // 8. AUTO-LOAD ALL DATA FROM FIRESTORE (on sign-in)
+        // 8. AUTO-LOAD ALL DATA FROM FIRESTORE
         // --------------------------------------------------------------
-        // All data is loaded once, in full, right after sign-in. There's no
-        // manual "fetch a week" step anymore — once loaded, use the Period
-        // filter (Day / Week / Month, multi-select) in the filter rail to
-        // narrow the view client-side, instantly, without re-querying
-        // Firestore.
         async function loadAllData() {
             showSaveStatus('⏳', 'Loading data from Firebase…');
             try {
@@ -2340,7 +2277,6 @@
                 const results = [];
                 querySnapshot.forEach(docSnap => {
                     const data = docSnap.data();
-                    // Convert ISO date strings back to Date objects
                     for (const k in data) {
                         if (typeof data[k] === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(data[k])) {
                             const d = new Date(data[k]);
@@ -2372,19 +2308,8 @@
         }
 
         // --------------------------------------------------------------
-        // 8b. LOCAL BACKUP CACHE — Firebase free-tier fallback
+        // 8b. LOCAL BACKUP CACHE
         // --------------------------------------------------------------
-        // Firebase's Spark (free) plan caps daily Firestore reads/writes.
-        // Once that cap is hit, Firestore starts rejecting requests until
-        // it resets. To make sure you can still SEE your data in the
-        // meantime, every file that gets loaded into the dashboard (via
-        // upload, sample data, or a successful Firestore load) is also
-        // mirrored into this browser's IndexedDB. If Firestore then fails
-        // with a quota/limit-type error, we transparently fall back to
-        // that local copy instead of leaving the dashboard empty.
-        // This is a per-browser, per-device cache only — it is not a
-        // substitute for Firebase and is cleared if the user clears their
-        // browser storage.
         const LOCAL_DB_NAME = 'qaDashboardLocalCache';
         const LOCAL_DB_VERSION = 1;
         const LOCAL_STORE = 'backups';
@@ -2420,9 +2345,6 @@
             return out;
         }
 
-        // Saves the current raw rows to IndexedDB so they can be viewed later
-        // even if Firebase is unreachable or over its free-tier limit.
-        // Fire-and-forget: failures here should never block the dashboard.
         async function saveLocalBackup(rawRows, meta) {
             if (!rawRows || !rawRows.length) return;
             try {
@@ -2496,8 +2418,6 @@
             return days + ' day' + (days === 1 ? '' : 's') + ' ago';
         }
 
-        // Updates the small "Local backup saved" pill in the header and the
-        // offline-entry hint on the sign-in screen.
         function updateLocalBackupUI(payload) {
             const pill = document.getElementById('localBackupPill');
             const pillTxt = document.getElementById('localBackupPillTxt');
@@ -2517,17 +2437,12 @@
             }
         }
 
-        // Checks IndexedDB on page load so the "view offline" option on the
-        // sign-in screen and the header pill are correct from the start.
         async function refreshLocalBackupIndicator() {
             const backup = await loadLocalBackup();
             updateLocalBackupUI(backup);
             return backup;
         }
 
-        // Detects Firestore/Firebase errors that indicate the free-tier
-        // quota (reads, writes, or bandwidth) has been reached, as opposed
-        // to e.g. a bad query or a permissions bug.
         function isFirebaseLimitError(err) {
             if (!err) return false;
             const code = (err.code || '').toLowerCase();
@@ -2551,8 +2466,6 @@
             document.getElementById('localModeBanner').classList.remove('show');
         }
 
-        // Attempts to load the local backup and boot the dashboard from it.
-        // Returns true if a backup was found and loaded, false otherwise.
         async function tryEnterLocalFallback(reason) {
             const backup = await loadLocalBackup();
             if (!backup || !backup.rows.length) return false;
@@ -2582,8 +2495,6 @@
         function initFilters() {
             SLICER_FIELDS.forEach(f => state.filterValues[f.key] = new Set());
             state.periodFilter = { mode: 'week', day: new Set(), week: new Set(), month: new Set() };
-            // Default to the most recent week only — the user can still
-            // multi-select additional weeks from the Week slicer panel.
             let latestWeek = null,
                 latestSort = -Infinity;
             state.data.forEach(r => {
@@ -2595,7 +2506,6 @@
             const grid = document.getElementById('slicerGrid');
             grid.innerHTML = '';
 
-            // Period (Day/Week/Month) slicer — always first, custom panel.
             const periodWrap = document.createElement('div');
             periodWrap.className = 'slicer';
             periodWrap.id = 'periodSlicer';
@@ -2611,8 +2521,6 @@
             });
 
             SLICER_FIELDS.forEach(f => {
-                // Fulfilment Channel has no standalone button — its options
-                // live nested inside the Delivery Issue panel (under "Yes").
                 if (f.key === 'fulfilmentChannel') return;
                 const wrap = document.createElement('div');
                 wrap.className = 'slicer';
@@ -2669,10 +2577,6 @@
             return [...counts.entries()].sort((a, b) => b[1] - a[1]);
         }
 
-        // Same faceted-count pattern as fieldValueCounts() above, but
-        // sourced from the Scrub sheet's normalized rows instead of the
-        // Raw sheet's — used for Delivery Issue / Fulfilment Channel,
-        // which only exist on the Scrub sheet (see buildDeliveryIssuePanel).
         function scrubFieldValueCounts(field, excludeField) {
             const counts = new Map();
             baseFiltered(excludeField, state.scrubData || []).forEach(row => {
@@ -2685,8 +2589,6 @@
             return [...counts.entries()].sort((a, b) => b[1] - a[1]);
         }
 
-        // Fulfilment Channel counts, scoped to Scrub rows where Delivery
-        // Issue = Yes (honoring every other active slicer/timeline filter).
         function fulfilmentChannelCountsForYes() {
             const base = baseFiltered('fulfilmentChannel', state.scrubData || []).filter(r => r.deliveryIssue ===
                 true);
@@ -2698,10 +2600,6 @@
             return [...counts.entries()].sort((a, b) => b[1] - a[1]);
         }
 
-        // Delivery Issue slicer panel: Yes/No options sourced from the
-        // Scrub sheet (Raw sheet has no such column). Checking "Yes"
-        // reveals the Fulfilment Channel options nested underneath it,
-        // scoped to Delivery Issue = Yes rows.
         function buildDeliveryIssuePanel() {
             const wrap = document.querySelector('.slicer[data-field="deliveryIssue"]');
             const panel = wrap.querySelector('.slicer-panel');
@@ -2730,8 +2628,6 @@
                 });
                 optsEl.appendChild(row);
 
-                // Nested Fulfilment Channel list — shown only under "Yes",
-                // only once "Yes" is checked.
                 if (v === 'Yes' && cb.checked) {
                     const nested = document.createElement('div');
                     nested.style.cssText =
@@ -2810,7 +2706,7 @@
 
         function updateSlicerButtonState(f) {
             const wrap = document.querySelector('.slicer[data-field="' + f.key + '"]');
-            if (!wrap) return; // e.g. fulfilmentChannel has no standalone button
+            if (!wrap) return;
             const n = state.filterValues[f.key].size;
             const countEl = wrap.querySelector('.count');
             countEl.style.display = n ? 'inline-block' : 'none';
@@ -2818,8 +2714,6 @@
             wrap.classList.toggle('active', n > 0);
         }
 
-        // Delivery Issue's button badge reflects both its own selections
-        // and any nested Fulfilment Channel selections made under "Yes".
         function updateDeliveryIssueButtonState() {
             const wrap = document.querySelector('.slicer[data-field="deliveryIssue"]');
             if (!wrap) return;
@@ -2830,7 +2724,6 @@
             wrap.classList.toggle('active', n > 0);
         }
 
-        // ---- Period (Day / Week / Month) filter ----
         function periodValueCounts(mode) {
             const modeCfg = PERIOD_MODES[mode];
             const counts = new Map();
@@ -2926,10 +2819,6 @@
 
         function baseFiltered(excludeField, sourceRows) {
             const rows = sourceRows || state.data;
-            // Delivery Issue / Fulfilment Channel only exist on the Scrub
-            // sheet — applying them against the Raw sheet would zero it
-            // out (every Raw row reads as "Unspecified"), so they only
-            // filter when we're actually filtering Scrub rows.
             const isScrubSource = sourceRows === state.scrubData;
             return rows.filter(row => {
                 for (const f of SLICER_FIELDS) {
@@ -2969,17 +2858,10 @@
 
         function getFiltered() { return baseFiltered(null).filter(inRange); }
 
-        // Applies the same slicer/period/drill/search + timeline filters
-        // to the Scrub sheet's normalized rows (they share canonical field
-        // names with the Raw sheet via the same normalizeRows() pipeline).
-        // Used by the Total Scrub KPI, the Dissat Trigger chart and the
-        // Recontact correlation crosstab.
         function getFilteredScrub() {
             if (!state.scrubData || !state.scrubData.length) return [];
             return baseFiltered(null, state.scrubData).filter(inRange);
         }
-
-
 
         // --------------------------------------------------------------
         // 10. TIMELINE
@@ -3121,13 +3003,6 @@
             canvas.style.display = 'none';
         }
 
-        // Grows a horizontal-bar chart's wrapper to fit every category
-        // label without Chart.js having to auto-skip alternating ticks.
-        // perItem is px of vertical room per bar; result is clamped to a
-        // sane min/max (the wrapper scrolls if it somehow still overflows).
-        // Fixed at a constant height so the 4 "Reason & Trend Signals"
-        // panels are always the same size; charts with more categories
-        // than fit just scroll inside their wrap instead of growing it.
         function sizeChartWrap(wrapId, itemCount, perItem) {
             const wrap = document.getElementById(wrapId);
             if (!wrap) return;
@@ -3169,11 +3044,8 @@
         }
 
         // --------------------------------------------------------------
-        // 13. MAIN RENDER
+        // 13. MAIN RENDER — conditionally renders only visible panels
         // --------------------------------------------------------------
-        // Shows/hides the Raw-only vs Scrub-only KPI cards and panels
-        // per the Data View dropdown. Both on shows everything (the
-        // original full dashboard); default is Raw only.
         function applyDataView() {
             const showRaw = state.dataView.raw;
             const showScrub = state.dataView.scrub;
@@ -3191,18 +3063,31 @@
                 .length.toLocaleString() + ' rows in view';
             syncTimelineUI(true);
 
+            // KPIs always render; they handle visibility internally.
             renderKPIs(filtered);
-            renderTrendChart(filtered);
-            renderL1Chart(filtered);
-            renderL3Chart(filtered);
-            renderAgentChart(filtered);
-            renderHeatmap(filtered);
-            renderInsights(filtered, scrubFiltered);
-            renderPareto(filtered);
-            renderScorecard(filtered);
-            renderRecontactBreakdown(filtered);
-            renderTriggerChart(scrubFiltered);
-            renderCrosstabs(scrubFiltered);
+
+            // === RAW-DATA PANELS (only when Raw view is on) ===
+            if (state.dataView.raw) {
+                renderTrendChart(filtered);
+                renderL1Chart(filtered);
+                renderL3Chart(filtered);
+                renderAgentChart(filtered);
+                renderHeatmap(filtered);
+                renderInsights(filtered, scrubFiltered);
+                renderPareto(filtered);
+                renderScorecard(filtered);
+                renderRecontactBreakdown(filtered);
+            }
+
+            // === SCRUB-DATA PANELS (only when Scrub view is on) ===
+            if (state.dataView.scrub) {
+                // Give the browser a microtask to ensure scrub panels are
+                // visible before Chart.js measures canvas dimensions.
+                queueMicrotask(() => {
+                    renderTriggerChart(scrubFiltered);
+                    renderCrosstabs(scrubFiltered);
+                });
+            }
         }
 
         // ---- KPIs ----
@@ -3214,10 +3099,6 @@
             { key: 'totalScrub', label: 'Total Scrub', accent: 'good', fmt: v => Math.round(v).toLocaleString() }
         ];
 
-        // Groups rows by contactUsername and returns the number of "repeat"
-        // contacts — i.e. every contact beyond a username's first one in
-        // the given row set. Basis: username (Username col for week34,
-        // USN of the user for the dsats export).
         function recontactEventCount(rows) {
             const byUser = groupBy(rows.filter(r => r.contactUsername), 'contactUsername');
             let events = 0;
@@ -3225,9 +3106,6 @@
             return events;
         }
 
-        // Total Scrub: total row count of the (filtered) Scrub sheet.
-        // Session IDs can legitimately repeat (a case scrubbed more than
-        // once), so this counts every row rather than deduping by ID.
         function computeScrubKpi(scrubRows) {
             return scrubRows.length;
         }
@@ -3322,9 +3200,6 @@
                 o.cases++;
                 o.dsats += dsatVal(r); });
 
-            // Scrub series: just a per-day row count of the correlated
-            // second file. It uses its own dsat helper scope (schema may
-            // differ from the primary file) but here we only need volume.
             const scrubOn = !!(state.scrubApplied && state.scrubData && state.scrubData.length);
             const scrubByDay = new Map();
             if (scrubOn) {
@@ -3332,8 +3207,6 @@
                     .dateStr) || 0) + 1); });
             }
 
-            // Union of days from both datasets so the scrub line isn't
-            // silently dropped if its date range doesn't fully overlap.
             let days = [...new Set([...byDay.keys(), ...scrubByDay.keys()])].sort();
             document.getElementById('trendSub').textContent = days.length + ' day' + (days.length === 1 ? '' : 's') +
                 ' in range' + (scrubOn ? ' · scrub correlated' : '');
@@ -3395,14 +3268,9 @@
             let scrubG = null;
             const footnote = document.getElementById('l1SplitFootnote');
             if (scrubOn) {
-                // Same L1 labels as the primary top 10, so "Return & Refund:
-                // 2,252 (primary) vs 204 (scrub)" lines up bar-for-bar.
                 scrubG = groupBy(state.scrubData, 'l1Reason');
                 datasets.push({ label: 'Scrub', data: arr.map(a => (scrubG.get(a.k) || []).length),
                     backgroundColor: '#FFC24B', borderRadius: 4 });
-
-                // Percentage split of Primary vs Scrub, out of 100%, across
-                // this same top-10 L1 slice.
                 const totalPrimary = arr.reduce((s, a) => s + a.n, 0);
                 const totalScrubTop = arr.reduce((s, a) => s + (scrubG.get(a.k) || []).length, 0);
                 const totalBoth = totalPrimary + totalScrubTop;
@@ -3512,10 +3380,6 @@
         }
 
         // ---- heatmap ----
-        // Volume only (the Dissat rate toggle was removed per request).
-        // DSAT hour heatmap — a single row across the 24 hours of the day.
-        // Basis for the hour is the row's submit/CSAT-submission timestamp
-        // (r.hr), and DSAT volume uses the schema-aware dsat helper.
         function renderHeatmap(rows) {
             const hours = [...Array(24).keys()];
             const cells = hours.map(() => ({ n: 0, dsats: 0 }));
@@ -3648,9 +3512,6 @@
             const cumMap = new Map();
             byDsatsDesc.forEach(a => { running += a.share;
                 cumMap.set(a.l3, running); });
-            // Mobile only shows the dashboard's Pareto/Scorecard/Recontact
-            // panels — keep that view to the top 5 L3 reasons by the
-            // current sort; cum.% above is still computed from all rows.
             const displayArr = isMobileView() ? arr.slice(0, 5) : arr;
             const tbody = document.querySelector('#paretoTable tbody');
             tbody.innerHTML = displayArr.map(a => {
@@ -3663,7 +3524,6 @@
             }).join('') || '<tr><td colspan="5" style="color:var(--muted);">No data in range.</td></tr>';
             attachSort('paretoTable', 'pareto', arr, () => renderPareto(rows));
         }
-
 
         // ---- agent scorecard ----
         document.getElementById('agentSearch').addEventListener('input', () => renderScorecard(state.filtered));
@@ -3691,10 +3551,6 @@
         }
 
         // ---- recontact breakdown ----
-        // Groups all rows (in the current filter) by contactUsername
-        // (Username for week34, USN of the user for the dsats export).
-        // "Recontact" = repeat contacts beyond that user's first one;
-        // only users with at least one recontact are listed.
         function renderRecontactBreakdown(rows) {
             const g = groupBy(rows.filter(r => r.contactUsername), 'contactUsername');
             let arr = [...g.entries()].map(([k, l]) => {
@@ -3715,10 +3571,9 @@
             attachSort('recontactTable', 'recontact', arr, () => renderRecontactBreakdown(rows));
         }
 
-        // ---- Dissat Trigger x Specific Parameter/Behavior (from Scrub sheet) ----
-        // Rows are "process/policy related" when the Dissat Trigger or the
-        // Specific Parameter/Behavior text mentions process or policy.
+        // ---- Dissat Trigger chart ----
         const PROCESS_POLICY_RE = /process|polic(?:y|ies)/i;
+
         function isProcessPolicyRow(r) {
             return PROCESS_POLICY_RE.test(r.dissatTrigger || '') || PROCESS_POLICY_RE.test(r.specificParam || '');
         }
@@ -3770,7 +3625,7 @@
             upsertChart('triggerChart', 'bar', { labels: triggerKeys, datasets }, opts);
         }
 
-        // ---- Recontact correlation (from Scrub sheet: EDD / GDT status) ----
+        // ---- Recontact correlation ----
         function renderCrosstabs(rows) {
             const wrap = document.getElementById('crosstabPair');
             if (!wrap) return;
@@ -3803,7 +3658,6 @@
             }
             wrap.innerHTML = crosstab('eddStatus', 'EDD Status') + crosstab('gdtStatus', 'GDT Status');
         }
-
 
         // ---- sorting helpers ----
         function sortRows(arr, s) {
@@ -3919,13 +3773,8 @@
         }
 
         // --------------------------------------------------------------
-        // 17. AUTH GATE: sign-in required before ANY Firestore read/write
+        // 17. AUTH GATE
         // --------------------------------------------------------------
-        // Data is only loaded once Firebase confirms a signed-in user. This
-        // is a UX gate, not the real security boundary — the actual
-        // enforcement lives in Firestore Security Rules (see firestore.rules),
-        // which reject reads/writes from anyone who isn't authenticated,
-        // regardless of what this page does.
         const authGateEl = document.getElementById('authGate');
         const appWrapEl = document.getElementById('appWrap');
         const loginForm = document.getElementById('loginForm');
@@ -3940,13 +3789,6 @@
         let dataBooted = false;
         state.offlineMode = false;
 
-        // --------------------------------------------------------------
-        // 17a-ii. OFFLINE ENTRY — view local backup without Firebase at all
-        // --------------------------------------------------------------
-        // Covers the worst case: Firebase Auth itself is unreachable or
-        // rate-limited, so the sign-in form never succeeds. If a local
-        // backup exists in this browser, the user can jump straight to
-        // the dashboard using that cached copy, no sign-in required.
         refreshLocalBackupIndicator();
 
         document.getElementById('viewOfflineBtn').addEventListener('click', async () => {
@@ -3966,13 +3808,7 @@
             showLocalModeBanner('Viewing offline — not signed in to Firebase.', backup);
         });
 
-        // --------------------------------------------------------------
-        // 17b. INACTIVITY AUTO-LOGOUT
-        // --------------------------------------------------------------
-        // Signs the user out after a period with no mouse/keyboard/touch/
-        // scroll activity, so an unattended, signed-in tab doesn't stay
-        // open indefinitely.
-        const INACTIVITY_LIMIT_MS = 5 * 60 * 1000; // 5 minutes
+        const INACTIVITY_LIMIT_MS = 5 * 60 * 1000;
         const ACTIVITY_EVENTS = ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart', 'click'];
         let inactivityTimer = null;
         let inactivityLogout = false;
@@ -4031,10 +3867,6 @@
                     loadAllData();
                 }
             } else {
-                // If the user is deliberately viewing their local backup
-                // offline (Firebase unreachable / limit reached), don't
-                // yank them back to the sign-in screen just because there's
-                // no authenticated Firebase user.
                 if (state.offlineMode) return;
                 appWrapEl.style.display = 'none';
                 userPill.style.display = 'none';
@@ -4054,7 +3886,6 @@
         console.log('📁 Collection name: "' + state.firebaseCollection + '" in database "shopeemydb2026".');
         console.log('📈 Auto-loads ALL data from Firestore once you sign in. Use the Period filter (Day/Week/Month) in the filter rail to narrow the view.');
 
-        // Expose for debugging
         window.__state = state;
         window.__render = render;
         window.__db = db;
